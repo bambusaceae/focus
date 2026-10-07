@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Focus">
+<meta name="theme-color" content="#f4f3ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1c1e" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { margin: 0; font-size: 14px; }
+  [hidden] { display: none !important; }
+</style>
+<title>Focus Grid</title>
+
+<style>
+  /* Layout: lock-screen stack — date + big clock up top, empty middle, notification card above two round corner buttons. */
+  :root {
+    --bg: #f4f3ef;
+    --card: #ffffff;
+    --chip: #ebe9e4;
+    --fg: #2b2d30;
+    --muted: #8a8c90;
+    --line: #dcdad4;
+    --accent: #4f6478;
+    --on-accent: #ffffff;
+    --prosing: #a3366c;
+    --working: #27406e;
+    --cell0: #e6e4df;
+    --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+    --font-clock: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1c1e; --card: #26272a; --chip: #333438; --fg: #e8e8e8; --muted: #8e9096; --line: #34363a;
+      --accent: #8da3b8; --on-accent: #1b1c1e;
+      --prosing: #d0679b; --working: #7194d2;
+      --cell0: #2f3034;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1c1e; --card: #26272a; --chip: #333438; --fg: #e8e8e8; --muted: #8e9096; --line: #34363a;
+    --accent: #8da3b8; --on-accent: #1b1c1e;
+    --prosing: #d0679b; --working: #7194d2;
+    --cell0: #2f3034;
+    color-scheme: dark;
+  }
+
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-ui);
+    font-weight: 300;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .app {
+    box-sizing: border-box;
+    max-width: 440px;
+    height: 100%;
+    margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: 28px 18px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* top: date + clock */
+  .top { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .date { font-size: 19px; font-weight: 400; opacity: .85; }
+  .clock {
+    font-family: var(--font-clock);
+    font-weight: 200;
+    font-size: clamp(76px, 24vw, 104px);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .clock.dim { color: var(--muted); }
+  .clock.small { font-size: clamp(56px, 17vw, 76px); }
+  .breakdown { display: flex; gap: 16px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 1.3em; }
+  .breakdown span { display: inline-flex; align-items: center; gap: 6px; }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+  .dot.prosing { background: var(--prosing); }
+  .dot.working { background: var(--working); }
+
+  .middle { flex: 1; min-height: 16px; }
+
+  /* notification card */
+  .card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding-inline: 2px; }
+  .card-text { min-width: 0; }
+  .card-title { font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 7px; }
+  .card-sub { font-size: 14px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+  .badge { flex: none; width: 18px; height: 18px; color: var(--muted); }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .actions.one { grid-template-columns: 1fr; }
+  .act {
+    appearance: none; border: 0; cursor: pointer;
+    height: 42px; border-radius: 12px;
+    font: 400 15px/1 var(--font-ui);
+    background: var(--chip); color: var(--fg);
+  }
+  .act.primary { background: var(--accent); color: var(--on-accent); }
+  .act.primary.prosing { background: var(--prosing); color: #fff; }
+  .act.primary.working { background: var(--working); color: #fff; }
+  .act:active { opacity: .7; }
+  .act:focus-visible, .round:focus-visible, .chipbtn:focus-visible, .seg button:focus-visible, .cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* category / filter segmented control */
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; background: var(--chip); border-radius: 12px; padding: 3px; }
+  .seg button {
+    appearance: none; border: 0; cursor: pointer; background: transparent; color: var(--muted);
+    height: 34px; border-radius: 9px;
+    font: 400 14px/1 var(--font-ui);
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); }
+
+  .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .chipbtn {
+    appearance: none; border: 0; cursor: pointer;
+    height: 40px; border-radius: 12px;
+    font: 400 15px/1 var(--font-ui); font-variant-numeric: tabular-nums;
+    background: var(--chip); color: var(--fg);
+  }
+  .chipbtn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+
+  /* bottom row */
+  .bottom { display: flex; align-items: center; justify-content: space-between; padding: 18px 10px 0; }
+  .round {
+    appearance: none; border: 0; cursor: pointer;
+    width: 50px; height: 50px; border-radius: 50%;
+    background: var(--chip); color: var(--fg);
+    display: grid; place-items: center;
+  }
+  .round svg { width: 22px; height: 22px; }
+  .round[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+  .round:disabled { opacity: .4; cursor: default; }
+  .center-label { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* history */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding-inline: 2px; }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .stat .v { font-size: 16px; font-weight: 400; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .rule { height: 1px; background: var(--line); }
+  .graph-wrap { display: flex; gap: 6px; }
+  .wk { display: grid; width: 22px; grid-template-rows: 14px repeat(7, 11px); row-gap: 3px; font-size: 9px; color: var(--muted); }
+  .wk span { line-height: 11px; }
+  .graph-scroll { overflow-x: auto; min-width: 0; flex: 1; scrollbar-width: none; }
+  .graph-scroll::-webkit-scrollbar { display: none; }
+  .graph { display: grid; grid-auto-flow: column; grid-template-rows: 14px repeat(7, 11px); grid-auto-columns: 11px; gap: 3px; width: max-content; padding-right: 1px; }
+  .mlabel { font-size: 9px; color: var(--muted); white-space: nowrap; line-height: 14px; }
+  .cell { width: 11px; height: 11px; border-radius: 2px; background: var(--cell0); border: 0; padding: 0; cursor: pointer; }
+  .cell.n1 { background: color-mix(in srgb, var(--accent) 30%, var(--cell0)); }
+  .cell.n2 { background: color-mix(in srgb, var(--accent) 55%, var(--cell0)); }
+  .cell.n3 { background: color-mix(in srgb, var(--accent) 80%, var(--cell0)); }
+  .cell.n4 { background: var(--accent); }
+  .cell.p1 { background: color-mix(in srgb, var(--prosing) 30%, var(--cell0)); }
+  .cell.p2 { background: color-mix(in srgb, var(--prosing) 55%, var(--cell0)); }
+  .cell.p3 { background: color-mix(in srgb, var(--prosing) 80%, var(--cell0)); }
+  .cell.p4 { background: var(--prosing); }
+  .cell.w1 { background: color-mix(in srgb, var(--working) 30%, var(--cell0)); }
+  .cell.w2 { background: color-mix(in srgb, var(--working) 55%, var(--cell0)); }
+  .cell.w3 { background: color-mix(in srgb, var(--working) 80%, var(--cell0)); }
+  .cell.w4 { background: var(--working); }
+  .cell.sel { outline: 1px solid var(--fg); outline-offset: 0; }
+  .cell.empty { background: transparent; cursor: default; }
+  .legend { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); padding-inline: 2px; }
+  .legend .cell { cursor: default; }
+  .legend .gap { width: 4px; }
+  .legend .item { display: inline-flex; align-items: center; gap: 5px; margin-right: 12px; }
+</style>
+
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="date" id="date">Wednesday, October 7</div>
+    <div class="clock" id="clock">25:00</div>
+    <div class="breakdown" id="breakdown" hidden></div>
+  </div>
+
+  <div class="middle"></div>
+
+  <div class="card" id="card"></div>
+
+  <div class="bottom">
+    <button class="round" id="btn-timer" type="button" aria-label="Timer" aria-pressed="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg>
+    </button>
+    <div class="center-label" id="center-label">Today 0m</div>
+    <button class="round" id="btn-cal" type="button" aria-label="History" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3.5" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="16" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="16" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="16" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="16" width="4.5" height="4.5" rx="1"/><rect x="16" y="16" width="4.5" height="4.5" rx="1"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const K = { minutes: 'fg.minutes', records: 'fg.records', session: 'fg.session', cat: 'fg.category' };
+  const load = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
+  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  const drop = (k) => { try { localStorage.removeItem(k); } catch (e) {} };
+
+  const CATS = { prosing: 'Prosing', working: 'Working' };
+
+  let minutes = load(K.minutes, 25);
+  let category = load(K.cat, 'prosing');
+  if (!CATS[category]) category = 'prosing';
+  // records: { "2026-10-07": { s, n, c: { prosing: { s, n }, working: { s, n } } } }
+  let records = load(K.records, {});
+  let session = load(K.session, null);      // { start, end, minutes, category }
+  let phase = 'idle';                        // idle | picking | focusing | confirm | success | failed
+  let view = 'timer';                        // timer | cal
+  let filter = 'all';                        // all | prosing | working
+  let last = { minutes, category };
+  let failText = '';
+  let selected = null;
+
+  const PRESETS = [15, 25, 30, 45, 60, 90];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const DOW_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  const $ = (id) => document.getElementById(id);
+  const pad = (n) => String(n).padStart(2, '0');
+  const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const fmtDur = (sec) => {
+    const m = Math.floor(sec / 60);
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60), r = m % 60;
+    return r ? `${h}h ${r}m` : `${h}h`;
+  };
+  const clock = (sec) => `${pad(Math.floor(sec / 60))}:${pad(sec % 60)}`;
+  const hhmm = (t) => { const d = new Date(t); return `${d.getHours()}:${pad(d.getMinutes())}`; };
+  const longDate = (d) => `${DOW_LONG[d.getDay()]}, ${MONTHS_LONG[d.getMonth()]} ${d.getDate()}`;
+
+  // ---------- timer logic ----------
+  function start() {
+    const now = Date.now();
+    last = { minutes, category };
+    session = { start: now, end: now + minutes * 60000, minutes, category };
+    save(K.session, session);
+    phase = 'focusing';
+    render();
+  }
+  function complete() {
+    const key = dayKey(new Date(session.start));
+    const r = records[key] || { s: 0, n: 0 };
+    const add = session.minutes * 60;
+    r.s += add; r.n += 1;
+    const cat = session.category || 'prosing';
+    r.c = r.c || {};
+    const c = r.c[cat] || { s: 0, n: 0 };
+    c.s += add; c.n += 1;
+    r.c[cat] = c;
+    records[key] = r;
+    save(K.records, records);
+    last = { minutes: session.minutes, category: cat };
+    session = null; drop(K.session);
+    phase = 'success';
+    render();
+  }
+  function fail(text) {
+    if (session) last = { minutes: session.minutes, category: session.category || category };
+    session = null; drop(K.session);
+    failText = text;
+    phase = 'failed';
+    render();
+  }
+  // Any time the page is hidden (another app, home screen, or screen lock), the session ends.
+  function leave() {
+    if ((phase === 'focusing' || phase === 'confirm') && session) {
+      if (Date.now() >= session.end) complete();
+      else fail('You left the page, so the session stopped.');
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') leave();
+  });
+  window.addEventListener('pagehide', leave);
+
+  function tick() {
+    if ((phase === 'focusing' || phase === 'confirm') && session) {
+      const left = Math.max(0, Math.ceil((session.end - Date.now()) / 1000));
+      if (view === 'timer') $('clock').textContent = clock(left);
+      if (left === 0) complete();
+    }
+  }
+  setInterval(tick, 250);
+
+  // ---------- building blocks ----------
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const dot = (cat) => el('span', `dot ${cat}`);
+  function act(label, cls, fn) {
+    const b = el('button', `act ${cls || ''}`.trim(), label);
+    b.type = 'button';
+    b.addEventListener('click', fn);
+    return b;
+  }
+  function head(title, sub, cat) {
+    const h = el('div', 'card-head');
+    const t = el('div', 'card-text');
+    const tt = el('div', 'card-title');
+    if (cat) tt.append(dot(cat));
+    tt.append(document.createTextNode(title));
+    t.append(tt);
+    if (sub) t.append(el('div', 'card-sub', sub));
+    h.append(t);
+    const badge = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    badge.setAttribute('viewBox', '0 0 24 24'); badge.setAttribute('class', 'badge');
+    badge.innerHTML = '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';
+    h.append(badge);
+    return h;
+  }
+  function actions(...btns) {
+    const a = el('div', btns.length === 1 ? 'actions one' : 'actions');
+    a.append(...btns);
+    return a;
+  }
+  function segmented(options, value, onPick) {
+    const s = el('div', 'seg');
+    for (const [key, label, withDot] of options) {
+      const b = el('button');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(key === value));
+      if (withDot) b.append(dot(key));
+      b.append(document.createTextNode(label));
+      b.addEventListener('click', () => onPick(key));
+      s.append(b);
+    }
+    return s;
+  }
+
+  // ---------- render ----------
+  function render() {
+    const card = $('card'), ck = $('clock'), dt = $('date');
+    card.replaceChildren();
+    $('btn-timer').setAttribute('aria-pressed', String(view === 'timer'));
+    $('btn-cal').setAttribute('aria-pressed', String(view === 'cal'));
+    $('btn-cal').disabled = phase === 'focusing' || phase === 'confirm';
+    const today = new Date();
+    $('center-label').textContent = `Today ${fmtDur(rec(today).s)}`;
+
+    if (view === 'cal') { renderCal(); return; }
+
+    $('breakdown').hidden = true;
+    dt.textContent = longDate(today);
+    ck.classList.remove('small');
+    ck.classList.toggle('dim', phase === 'success' || phase === 'failed');
+
+    if (phase === 'idle') {
+      ck.textContent = clock(minutes * 60);
+      card.append(
+        head(`${minutes} minute session`, 'Leaving the page or locking the screen ends the session.'),
+        segmented([['prosing', 'Prosing', true], ['working', 'Working', true]], category,
+          (k) => { category = k; save(K.cat, k); render(); }),
+        actions(act('Duration', '', () => { phase = 'picking'; render(); }),
+                act('Start', `primary ${category}`, start)));
+    }
+
+    if (phase === 'picking') {
+      ck.textContent = clock(minutes * 60);
+      const chips = el('div', 'chips');
+      for (const p of PRESETS) {
+        const c = el('button', 'chipbtn', `${p} min`);
+        c.type = 'button';
+        c.setAttribute('aria-pressed', String(p === minutes));
+        c.addEventListener('click', () => { minutes = p; save(K.minutes, minutes); phase = 'idle'; render(); });
+        chips.append(c);
+      }
+      const step = (d) => { minutes = Math.min(180, Math.max(5, minutes + d)); save(K.minutes, minutes); render(); };
+      card.append(head('Duration', 'Pick a length, or adjust by 5 minutes.'), chips,
+        actions(act('− 5 min', '', () => step(-5)), act('+ 5 min', '', () => step(5))),
+        actions(act('Done', 'primary', () => { phase = 'idle'; render(); })));
+    }
+
+    if (phase === 'focusing') {
+      tick();
+      card.append(
+        head(CATS[session.category] || 'Focusing', `${session.minutes} minutes · ends at ${hhmm(session.end)}`, session.category),
+        actions(act('Give up', '', () => { phase = 'confirm'; render(); })));
+    }
+
+    if (phase === 'confirm') {
+      tick();
+      card.append(
+        head('Give up this session?', 'It won’t be added to your history.', session.category),
+        actions(act('Keep going', '', () => { phase = 'focusing'; render(); }),
+                act('Give up', `primary ${session.category}`, () => fail('You gave up this session.'))));
+    }
+
+    if (phase === 'success') {
+      ck.textContent = clock(last.minutes * 60);
+      card.append(
+        head('Session complete', `${last.minutes} minutes of ${CATS[last.category].toLowerCase()} added to today.`, last.category),
+        actions(act('History', '', () => { phase = 'idle'; view = 'cal'; render(); }),
+                act('OK', `primary ${last.category}`, () => { phase = 'idle'; render(); })));
+    }
+
+    if (phase === 'failed') {
+      ck.textContent = clock(last.minutes * 60);
+      card.append(
+        head('Session stopped', failText, last.category),
+        actions(act('Try again', 'primary', () => { phase = 'idle'; render(); })));
+    }
+  }
+
+  // ---------- history ----------
+  const WEEKS = 53;
+  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const mondayOf = (d) => addDays(startOfDay(d), -((d.getDay() + 6) % 7));
+  function rec(d) { return records[dayKey(d)] || { s: 0, n: 0 }; }
+  function stat(d, f) {
+    const r = rec(d);
+    if (f === 'all') return { s: r.s, n: r.n };
+    return (r.c && r.c[f]) || { s: 0, n: 0 };
+  }
+  const lvl = (s) => s === 0 ? 0 : s < 1800 ? 1 : s < 3600 ? 2 : s < 7200 ? 3 : 4;
+  function cellClass(d) {
+    const s = stat(d, filter).s;
+    const l = lvl(s);
+    if (!l) return '';
+    if (filter === 'prosing') return `p${l}`;
+    if (filter === 'working') return `w${l}`;
+    const c = rec(d).c || {};
+    const ps = (c.prosing || {}).s || 0, ws = (c.working || {}).s || 0;
+    if (!ps && !ws) return `n${l}`;            // older records without a category
+    return ps >= ws ? `p${l}` : `w${l}`;       // the day's main category
+  }
+
+  function renderCal() {
+    const today = startOfDay(new Date());
+    const d = selected || today;
+    const st = stat(d, filter);
+    const isToday = dayKey(d) === dayKey(today);
+
+    $('date').textContent = isToday ? 'Today' : longDate(d);
+    const ck = $('clock');
+    ck.classList.add('small');
+    ck.classList.toggle('dim', st.s === 0);
+    ck.textContent = fmtDur(st.s);
+
+    const bd = $('breakdown');
+    bd.replaceChildren();
+    bd.hidden = false;
+    const c = rec(d).c || {};
+    for (const k of Object.keys(CATS)) {
+      const sp = el('span'); sp.append(dot(k), document.createTextNode(`${CATS[k]} ${fmtDur((c[k] || {}).s || 0)}`));
+      bd.append(sp);
+    }
+
+    const mon = mondayOf(today);
+    let week = 0;
+    for (let i = 0; i <= 6; i++) { const x = addDays(mon, i); if (x <= today) week += stat(x, filter).s; }
+    let total = 0;
+    for (const key of Object.keys(records)) {
+      const r = records[key];
+      total += filter === 'all' ? r.s : ((r.c && r.c[filter]) || { s: 0 }).s;
+    }
+
+    const card = $('card');
+    const seg = segmented([['all', 'All', false], ['prosing', 'Prosing', true], ['working', 'Working', true]], filter,
+      (k) => { const o = document.querySelector('.graph-scroll'); const keep = o ? o.scrollLeft : 0; filter = k; render(); if (selected) { const n = document.querySelector('.graph-scroll'); if (n) n.scrollLeft = keep; } });
+
+    const stats = el('div', 'stats');
+    for (const [k, v] of [['Sessions', String(st.n)], ['This week', fmtDur(week)], ['Total', fmtDur(total)]]) {
+      const s = el('div', 'stat'); s.append(el('div', 'k', k), el('div', 'v', v)); stats.append(s);
+    }
+
+    const wrap = el('div', 'graph-wrap');
+    const wk = el('div', 'wk');
+    for (const t of ['', 'Mon', '', 'Wed', '', 'Fri', '', '']) wk.append(el('span', '', t));
+    const sc = el('div', 'graph-scroll');
+    const g = el('div', 'graph');
+    const first = addDays(mon, -(WEEKS - 1) * 7);
+    let prevMonth = -1;
+    for (let w = 0; w < WEEKS; w++) {
+      const colStart = addDays(first, w * 7);
+      const m = colStart.getMonth();
+      g.append(el('div', 'mlabel', w > 0 && m !== prevMonth ? MONTHS[m] : ''));
+      prevMonth = m;
+      for (let i = 0; i < 7; i++) {
+        const day = addDays(colStart, i);
+        const cell = el('button');
+        cell.type = 'button';
+        if (day > today) { cell.className = 'cell empty'; cell.disabled = true; cell.tabIndex = -1; }
+        else {
+          cell.className = `cell ${cellClass(day)}`.trim();
+          if (dayKey(day) === dayKey(d)) cell.classList.add('sel');
+          cell.setAttribute('aria-label', `${MONTHS[day.getMonth()]} ${day.getDate()}, ${fmtDur(stat(day, filter).s)}`);
+          cell.addEventListener('click', () => {
+            const keep = sc.scrollLeft;
+            selected = day; render();
+            const nsc = document.querySelector('.graph-scroll'); if (nsc) nsc.scrollLeft = keep;
+          });
+        }
+        g.append(cell);
+      }
+    }
+    sc.append(g);
+    wrap.append(wk, sc);
+
+    const legend = el('div', 'legend');
+    if (filter === 'all') {
+      for (const k of Object.keys(CATS)) {
+        const it = el('span', 'item'); it.append(dot(k), document.createTextNode(CATS[k])); legend.append(it);
+      }
+      legend.append(el('span', '', 'Color shows the day’s main category'));
+    } else {
+      const p = filter === 'prosing' ? 'p' : 'w';
+      legend.append(el('span', '', 'Less'), el('span', 'gap'));
+      legend.append(el('span', 'cell'));
+      for (const l of [1, 2, 3, 4]) legend.append(el('span', `cell ${p}${l}`));
+      legend.append(el('span', 'gap'), el('span', '', 'More'));
+    }
+
+    card.append(seg, stats, el('div', 'rule'), wrap, legend);
+    if (!selected) {
+      sc.scrollLeft = sc.scrollWidth;
+      requestAnimationFrame(() => { sc.scrollLeft = sc.scrollWidth; });
+    }
+  }
+
+  // ---------- bottom buttons ----------
+  $('btn-timer').addEventListener('click', () => { view = 'timer'; render(); });
+  $('btn-cal').addEventListener('click', () => {
+    if (phase === 'focusing' || phase === 'confirm') return;
+    if (view === 'cal') selected = null;
+    view = 'cal'; render();
+  });
+
+  // ---------- boot ----------
+  // A session still saved at launch means the page was closed mid-session.
+  if (session) {
+    last = { minutes: session.minutes, category: session.category || category };
+    if (Date.now() >= session.end) complete();
+    else fail('You left the page, so the session stopped.');
+  }
+  render();
+  setInterval(() => { if (view === 'timer' && (phase === 'idle' || phase === 'picking')) $('date').textContent = longDate(new Date()); }, 60000);
+})();
+</script>
+
+</body>
+</html>
