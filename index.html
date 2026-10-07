@@ -187,6 +187,21 @@
   .legend .cell { cursor: default; }
   .legend .gap { width: 4px; }
   .legend .item { display: inline-flex; align-items: center; gap: 5px; margin-right: 12px; }
+  .syncrow {
+    appearance: none; border: 0; background: none; cursor: pointer; padding: 2px;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    font: 300 13px/1.3 var(--font-ui); color: var(--muted); text-align: left;
+  }
+  .syncrow .go { color: var(--accent); font-weight: 400; flex: none; }
+  .fieldwrap { display: flex; flex-direction: column; gap: 5px; padding-inline: 2px; }
+  .fieldwrap .k { font-size: 12px; color: var(--muted); }
+  .field {
+    -webkit-user-select: text; user-select: text;
+    height: 40px; border-radius: 10px; border: 0; padding-inline: 12px;
+    background: var(--chip); color: var(--fg);
+    font: 300 15px/1 var(--font-ui);
+  }
+  .field:focus { outline: 2px solid var(--accent); outline-offset: 0; }
 </style>
 
 </head>
@@ -215,7 +230,7 @@
 
 <script>
 (() => {
-  const K = { minutes: 'fg.minutes', records: 'fg.records', session: 'fg.session', cat: 'fg.category' };
+  const K = { minutes: 'fg.minutes', records: 'fg.records', sessions: 'fg.sessions', session: 'fg.session', cat: 'fg.category', token: 'fg.token', repo: 'fg.repo', synced: 'fg.syncedAt' };
   const load = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const drop = (k) => { try { localStorage.removeItem(k); } catch (e) {} };
@@ -225,8 +240,23 @@
   let minutes = load(K.minutes, 25);
   let category = load(K.cat, 'prosing');
   if (!CATS[category]) category = 'prosing';
-  // records: { "2026-10-07": { s, n, c: { prosing: { s, n }, working: { s, n } } } }
-  let records = load(K.records, {});
+  // legacy: day totals saved before sync existed { "2026-10-07": { s, n, c: { prosing: { s, n }, working: { s, n } } } }
+  let legacy = load(K.records, {});
+  // sessions: one entry per completed session { id, start, minutes, category } — merges cleanly across devices
+  let sessions = load(K.sessions, []);
+  let records = {};                          // derived day totals = legacy + sessions
+  function rebuild() {
+    records = JSON.parse(JSON.stringify(legacy));
+    for (const x of sessions) {
+      const key = dayKey(new Date(x.start));
+      const r = records[key] || (records[key] = { s: 0, n: 0 });
+      const add = x.minutes * 60;
+      r.s += add; r.n += 1;
+      r.c = r.c || {};
+      const c = r.c[x.category] || (r.c[x.category] = { s: 0, n: 0 });
+      c.s += add; c.n += 1;
+    }
+  }
   let session = load(K.session, null);      // { start, end, minutes, category }
   let phase = 'idle';                        // idle | picking | focusing | confirm | success | failed
   let view = 'timer';                        // timer | cal
@@ -234,6 +264,8 @@
   let last = { minutes, category };
   let failText = '';
   let selected = null;
+  let panel = null;                          // null | 'sync'
+  let syncState = { busy: false, error: '' };
 
   const PRESETS = [15, 25, 30, 45, 60, 90];
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -252,6 +284,7 @@
   const clock = (sec) => `${pad(Math.floor(sec / 60))}:${pad(sec % 60)}`;
   const hhmm = (t) => { const d = new Date(t); return `${d.getHours()}:${pad(d.getMinutes())}`; };
   const longDate = (d) => `${DOW_LONG[d.getDay()]}, ${MONTHS_LONG[d.getMonth()]} ${d.getDate()}`;
+  rebuild();
 
   // ---------- timer logic ----------
   function start() {
@@ -263,17 +296,11 @@
     render();
   }
   function complete() {
-    const key = dayKey(new Date(session.start));
-    const r = records[key] || { s: 0, n: 0 };
-    const add = session.minutes * 60;
-    r.s += add; r.n += 1;
     const cat = session.category || 'prosing';
-    r.c = r.c || {};
-    const c = r.c[cat] || { s: 0, n: 0 };
-    c.s += add; c.n += 1;
-    r.c[cat] = c;
-    records[key] = r;
-    save(K.records, records);
+    sessions.push({ id: `${session.start}-${Math.random().toString(36).slice(2, 8)}`, start: session.start, minutes: session.minutes, category: cat });
+    save(K.sessions, sessions);
+    rebuild();
+    sync();
     last = { minutes: session.minutes, category: cat };
     session = null; drop(K.session);
     phase = 'success';
@@ -360,7 +387,7 @@
     const today = new Date();
     $('center-label').textContent = `Today ${fmtDur(rec(today).s)}`;
 
-    if (view === 'cal') { renderCal(); return; }
+    if (view === 'cal') { if (panel === 'sync') renderSync(); else renderCal(); return; }
 
     $('breakdown').hidden = true;
     dt.textContent = longDate(today);
@@ -534,19 +561,143 @@
       legend.append(el('span', 'gap'), el('span', '', 'More'));
     }
 
-    card.append(seg, stats, el('div', 'rule'), wrap, legend);
+    const syncRow = el('button', 'syncrow');
+    syncRow.type = 'button';
+    syncRow.append(el('span', '', syncLabel()), el('span', 'go', getToken() ? 'Settings' : 'Set up'));
+    syncRow.addEventListener('click', () => { panel = 'sync'; render(); });
+    card.append(seg, stats, el('div', 'rule'), wrap, legend, el('div', 'rule'), syncRow);
     if (!selected) {
       sc.scrollLeft = sc.scrollWidth;
       requestAnimationFrame(() => { sc.scrollLeft = sc.scrollWidth; });
     }
   }
 
+  // ---------- GitHub sync ----------
+  const getToken = () => load(K.token, '');
+  const getRepo = () => load(K.repo, 'bambusaceae/focus-data');
+  function syncLabel() {
+    if (!getToken()) return 'GitHub sync is off';
+    if (syncState.busy) return 'Syncing…';
+    if (syncState.error) return `Sync failed: ${syncState.error}`;
+    const t = load(K.synced, 0);
+    if (!t) return 'Not synced yet';
+    const d = new Date(t);
+    return dayKey(d) === dayKey(new Date()) ? `Synced at ${hhmm(t)}` : `Synced ${MONTHS[d.getMonth()]} ${d.getDate()}, ${hhmm(t)}`;
+  }
+  const b64encode = (str) => { const bytes = new TextEncoder().encode(str); let bin = ''; for (const b of bytes) bin += String.fromCharCode(b); return btoa(bin); };
+  const b64decode = (b64) => { const bin = atob(b64.replace(/\s/g, '')); const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); return new TextDecoder().decode(bytes); };
+
+  function mergeData(remote) {
+    // sessions: union by id
+    const ids = new Set(sessions.map((x) => x.id));
+    for (const x of (remote.sessions || [])) if (!ids.has(x.id)) { sessions.push(x); ids.add(x.id); }
+    sessions.sort((a, b) => a.start - b.start);
+    // legacy totals: keep the larger value per day and category
+    for (const [key, r] of Object.entries(remote.legacy || {})) {
+      const mine = legacy[key];
+      if (!mine) { legacy[key] = r; continue; }
+      if (r.s > mine.s) { mine.s = r.s; mine.n = r.n; }
+      for (const [cat, v] of Object.entries(r.c || {})) {
+        mine.c = mine.c || {};
+        if (!mine.c[cat] || v.s > mine.c[cat].s) mine.c[cat] = v;
+      }
+    }
+    save(K.sessions, sessions);
+    save(K.records, legacy);
+    rebuild();
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(`https://api.github.com/repos/${getRepo()}/contents/${path}`, {
+      ...opts,
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': `Bearer ${getToken()}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      cache: 'no-store',
+    });
+    return res;
+  }
+
+  async function sync() {
+    if (!getToken() || syncState.busy || !navigator.onLine) return;
+    syncState = { busy: true, error: '' };
+    if (view === 'cal') render();
+    try {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        let sha;
+        const get = await api('data.json');
+        if (get.status === 200) {
+          const j = await get.json();
+          sha = j.sha;
+          mergeData(JSON.parse(b64decode(j.content)));
+        } else if (get.status === 401) {
+          throw new Error('the token was rejected');
+        } else if (get.status === 404) {
+          const probe = await fetch(`https://api.github.com/repos/${getRepo()}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+          if (probe.status !== 200) throw new Error('repository not found');
+        } else {
+          throw new Error(`GitHub error ${get.status}`);
+        }
+        const body = { message: `Update focus data ${new Date().toISOString()}`, content: b64encode(JSON.stringify({ version: 1, legacy, sessions }, null, 1)) };
+        if (sha) body.sha = sha;
+        const put = await api('data.json', { method: 'PUT', body: JSON.stringify(body) });
+        if (put.ok) { save(K.synced, Date.now()); syncState = { busy: false, error: '' }; break; }
+        if ((put.status === 409 || put.status === 422) && attempt === 0) continue; // changed elsewhere; fetch again and retry
+        if (put.status === 403 || put.status === 404) throw new Error('the token can’t write to this repository');
+        throw new Error(`GitHub error ${put.status}`);
+      }
+    } catch (e) {
+      syncState = { busy: false, error: (e && e.message) || 'network error' };
+    }
+    if (syncState.busy) syncState.busy = false;
+    if (view === 'cal' || phase === 'idle') render();
+  }
+
+  function renderSync() {
+    const card = $('card');
+    $('breakdown').hidden = true;
+    $('date').textContent = 'Sync';
+    const ck = $('clock');
+    ck.classList.add('small'); ck.classList.remove('dim');
+    ck.textContent = 'GitHub';
+
+    const tokenIn = el('input', 'field');
+    tokenIn.id = 'sync-token'; tokenIn.type = 'password'; tokenIn.autocomplete = 'off';
+    tokenIn.placeholder = getToken() ? 'Token saved · paste a new one to replace' : 'Paste your fine-grained token';
+    const repoIn = el('input', 'field');
+    repoIn.id = 'sync-repo'; repoIn.type = 'text'; repoIn.autocapitalize = 'off'; repoIn.spellcheck = false;
+    repoIn.value = getRepo();
+    const lab = (t, f) => { const w = el('label', 'fieldwrap'); w.append(el('span', 'k', t), f); return w; };
+
+    card.append(
+      head('GitHub sync', syncLabel()),
+      lab('Repository', repoIn),
+      lab('Token', tokenIn),
+      actions(
+        act(getToken() ? 'Remove token' : 'Back', '', () => {
+          if (getToken()) { drop(K.token); drop(K.synced); syncState = { busy: false, error: '' }; render(); }
+          else { panel = null; render(); }
+        }),
+        act('Save & sync', 'primary', async () => {
+          const t = tokenIn.value.trim();
+          if (t) save(K.token, t);
+          save(K.repo, repoIn.value.trim() || 'bambusaceae/focus-data');
+          await sync();
+          render();
+        })),
+      actions(act('Done', '', () => { panel = null; render(); })));
+  }
+  window.addEventListener('online', () => sync());
+
   // ---------- bottom buttons ----------
-  $('btn-timer').addEventListener('click', () => { view = 'timer'; render(); });
+  $('btn-timer').addEventListener('click', () => { view = 'timer'; panel = null; render(); });
   $('btn-cal').addEventListener('click', () => {
     if (phase === 'focusing' || phase === 'confirm') return;
     if (view === 'cal') selected = null;
-    view = 'cal'; render();
+    view = 'cal'; panel = null; render();
   });
 
   // ---------- boot ----------
@@ -557,6 +708,7 @@
     else fail('You left the page, so the session stopped.');
   }
   render();
+  sync();
   setInterval(() => { if (view === 'timer' && (phase === 'idle' || phase === 'picking')) $('date').textContent = longDate(new Date()); }, 60000);
 })();
 </script>
