@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -53,7 +53,8 @@
     color-scheme: dark;
   }
 
-  html, body { height: 100%; }
+  html, body { height: 100%; touch-action: manipulation; }
+  *, button { touch-action: manipulation; }
   body {
     background: var(--bg);
     color: var(--fg);
@@ -87,8 +88,13 @@
   }
   .clock.dim { color: var(--muted); }
   .clock.small { font-size: clamp(56px, 17vw, 76px); }
-  .breakdown { display: flex; gap: 16px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 1.3em; }
-  .breakdown span { display: inline-flex; align-items: center; gap: 6px; }
+  .breakdown { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 1.3em; }
+  .breakdown .line { display: grid; grid-template-columns: 8px 3.4em 4.6em 4.2em; align-items: center; column-gap: 10px; }
+  .breakdown .line .t { text-align: left; }
+  .breakdown .line .dur { color: var(--fg); text-align: right; }
+  .breakdown .line .cat { text-align: left; }
+  .breakdown .empty { font-size: 13px; }
+  .breakdown .more { font-size: 12px; }
 
   .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
   .dot.prosing { background: var(--prosing); }
@@ -121,18 +127,28 @@
   .act.primary { background: var(--accent); color: var(--on-accent); }
   .act.primary.prosing { background: var(--prosing); color: #fff; }
   .act.primary.working { background: var(--working); color: #fff; }
-  .act:active { opacity: .7; }
+  .act, .chipbtn, .round, .syncrow { transition: transform .14s ease, opacity .14s ease, background-color .2s ease, color .2s ease; }
+  .act:active, .chipbtn:active { transform: scale(.97); opacity: .85; }
+  .round:active { transform: scale(.92); }
+  .syncrow:active { opacity: .6; }
   .act:focus-visible, .round:focus-visible, .chipbtn:focus-visible, .seg button:focus-visible, .cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   /* category / filter segmented control */
-  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; background: var(--chip); border-radius: 12px; padding: 3px; }
+  .seg { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; background: var(--chip); border-radius: 11px; padding: 2.5px; }
+  .seg .thumb {
+    position: absolute; top: 2.5px; bottom: 2.5px; left: 2.5px;
+    border-radius: 8.5px; background: var(--card);
+    transition: transform .28s cubic-bezier(.3,.7,.2,1);
+  }
   .seg button {
     appearance: none; border: 0; cursor: pointer; background: transparent; color: var(--muted);
-    height: 34px; border-radius: 9px;
+    position: relative; z-index: 1;
+    height: 27px; border-radius: 8.5px;
+    transition: color .2s ease;
     font: 400 14px/1 var(--font-ui);
     display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   }
-  .seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); }
+  .seg button[aria-pressed="true"] { color: var(--fg); }
 
   .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .chipbtn {
@@ -169,19 +185,25 @@
   .graph { display: grid; grid-auto-flow: column; grid-template-rows: 14px repeat(7, 11px); grid-auto-columns: 11px; gap: 3px; width: max-content; padding-right: 1px; }
   .mlabel { font-size: 9px; color: var(--muted); white-space: nowrap; line-height: 14px; }
   .cell { width: 11px; height: 11px; border-radius: 2px; background: var(--cell0); border: 0; padding: 0; cursor: pointer; }
-  .cell.n1 { background: color-mix(in srgb, var(--accent) 30%, var(--cell0)); }
-  .cell.n2 { background: color-mix(in srgb, var(--accent) 55%, var(--cell0)); }
-  .cell.n3 { background: color-mix(in srgb, var(--accent) 80%, var(--cell0)); }
-  .cell.n4 { background: var(--accent); }
-  .cell.p1 { background: color-mix(in srgb, var(--prosing) 30%, var(--cell0)); }
-  .cell.p2 { background: color-mix(in srgb, var(--prosing) 55%, var(--cell0)); }
-  .cell.p3 { background: color-mix(in srgb, var(--prosing) 80%, var(--cell0)); }
-  .cell.p4 { background: var(--prosing); }
-  .cell.w1 { background: color-mix(in srgb, var(--working) 30%, var(--cell0)); }
-  .cell.w2 { background: color-mix(in srgb, var(--working) 55%, var(--cell0)); }
-  .cell.w3 { background: color-mix(in srgb, var(--working) 80%, var(--cell0)); }
-  .cell.w4 { background: var(--working); }
-  .cell.sel { outline: 1px solid var(--fg); outline-offset: 0; }
+  .cell.l1 { background: color-mix(in srgb, var(--fg) 22%, var(--cell0)); }
+  .cell.l2 { background: color-mix(in srgb, var(--fg) 45%, var(--cell0)); }
+  .cell.l3 { background: color-mix(in srgb, var(--fg) 68%, var(--cell0)); }
+  .cell.l4 { background: color-mix(in srgb, var(--fg) 90%, var(--cell0)); }
+  .cell { transition: transform .15s ease; }
+  .cell:active { transform: scale(.8); }
+  .cell.sel { outline: 1.5px solid var(--fg); outline-offset: 1px; }
+  .cell.pop { animation: pop .32s cubic-bezier(.3,.7,.2,1.4); }
+  @keyframes pop { 0% { transform: scale(.7); } 100% { transform: scale(1); } }
+  .card.enter > * { animation: rise .26s cubic-bezier(.2,.7,.2,1) both; }
+  .card.enter > *:nth-child(2) { animation-delay: .03s; }
+  .card.enter > *:nth-child(3) { animation-delay: .06s; }
+  .card.enter > *:nth-child(n+4) { animation-delay: .09s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .fade { animation: fadein .22s ease both; }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
   .cell.empty { background: transparent; cursor: default; }
   .legend { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); padding-inline: 2px; }
   .legend .cell { cursor: default; }
@@ -363,8 +385,21 @@
     a.append(...btns);
     return a;
   }
-  function segmented(options, value, onPick) {
+  const segPrev = {};
+  function segmented(name, options, value, onPick) {
     const s = el('div', 'seg');
+    const n = options.length;
+    const idx = Math.max(0, options.findIndex((o) => o[0] === value));
+    const thumb = el('div', 'thumb');
+    thumb.style.width = `calc((100% - 5px - ${(n - 1) * 4}px) / ${n})`;
+    const at = (i) => `translateX(calc(${i * 100}% + ${i * 4}px))`;
+    const from = segPrev[name] ?? idx;
+    thumb.style.transition = 'none';
+    thumb.style.transform = at(from);
+    s.append(thumb);
+    if (from !== idx) requestAnimationFrame(() => requestAnimationFrame(() => { thumb.style.transition = ''; thumb.style.transform = at(idx); }));
+    else requestAnimationFrame(() => { thumb.style.transition = ''; });
+    segPrev[name] = idx;
     for (const [key, label, withDot] of options) {
       const b = el('button');
       b.type = 'button';
@@ -378,9 +413,18 @@
   }
 
   // ---------- render ----------
+  let lastKey = '';
   function render() {
     const card = $('card'), ck = $('clock'), dt = $('date');
     card.replaceChildren();
+    const key = `${view}|${panel}|${view === 'timer' ? phase : ''}`;
+    if (key !== lastKey) {
+      card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter');
+      if (lastKey && key.split('|')[0] !== lastKey.split('|')[0]) { const t = document.querySelector('.top'); t.classList.remove('fade'); void t.offsetWidth; t.classList.add('fade'); }
+      lastKey = key;
+    } else {
+      card.classList.remove('enter');
+    }
     $('btn-timer').setAttribute('aria-pressed', String(view === 'timer'));
     $('btn-cal').setAttribute('aria-pressed', String(view === 'cal'));
     $('btn-cal').disabled = phase === 'focusing' || phase === 'confirm';
@@ -398,7 +442,7 @@
       ck.textContent = clock(minutes * 60);
       card.append(
         head(`${minutes} minute session`, 'Leaving the page or locking the screen ends the session.'),
-        segmented([['prosing', 'Prosing', true], ['working', 'Working', true]], category,
+        segmented('category', [['prosing', 'Prosing', true], ['working', 'Working', true]], category,
           (k) => { category = k; save(K.cat, k); render(); }),
         actions(act('Duration', '', () => { phase = 'picking'; render(); }),
                 act('Start', `primary ${category}`, start)));
@@ -464,15 +508,14 @@
   }
   const lvl = (s) => s === 0 ? 0 : s < 1800 ? 1 : s < 3600 ? 2 : s < 7200 ? 3 : 4;
   function cellClass(d) {
-    const s = stat(d, filter).s;
-    const l = lvl(s);
-    if (!l) return '';
-    if (filter === 'prosing') return `p${l}`;
-    if (filter === 'working') return `w${l}`;
-    const c = rec(d).c || {};
-    const ps = (c.prosing || {}).s || 0, ws = (c.working || {}).s || 0;
-    if (!ps && !ws) return `n${l}`;            // older records without a category
-    return ps >= ws ? `p${l}` : `w${l}`;       // the day's main category
+    const l = lvl(stat(d, filter).s);
+    return l ? `l${l}` : '';
+  }
+  // the sessions behind one day, oldest first
+  function daySessions(d) {
+    const k = dayKey(d);
+    return sessions.filter((x) => dayKey(new Date(x.start)) === k && (filter === 'all' || x.category === filter))
+      .sort((a, b) => a.start - b.start);
   }
 
   function renderCal() {
@@ -490,11 +533,23 @@
     const bd = $('breakdown');
     bd.replaceChildren();
     bd.hidden = false;
-    const c = rec(d).c || {};
-    for (const k of Object.keys(CATS)) {
-      const sp = el('span'); sp.append(dot(k), document.createTextNode(`${CATS[k]} ${fmtDur((c[k] || {}).s || 0)}`));
-      bd.append(sp);
+    const list = daySessions(d);
+    const shown = list.slice(-5);
+    for (const x of shown) {
+      const line = el('div', 'line');
+      line.append(dot(x.category), el('span', 't', hhmm(x.start)), el('span', 'cat', CATS[x.category] || ''), el('span', 'dur', fmtDur(x.minutes * 60)));
+      bd.append(line);
     }
+    if (list.length > shown.length) bd.append(el('div', 'more', `+ ${list.length - shown.length} earlier`));
+    const sessSec = list.reduce((a, x) => a + x.minutes * 60, 0);
+    const older = st.s - sessSec;              // time saved before per-session records existed
+    if (older > 0) {
+      const line = el('div', 'line');
+      line.append(el('span'), el('span', 't', '—'), el('span', 'cat', 'Earlier'), el('span', 'dur', fmtDur(older)));
+      bd.append(line);
+    }
+    if (!list.length && older <= 0) bd.append(el('div', 'empty', 'No sessions'));
+    bd.classList.remove('fade'); void bd.offsetWidth; bd.classList.add('fade');
 
     const mon = mondayOf(today);
     let week = 0;
@@ -506,7 +561,7 @@
     }
 
     const card = $('card');
-    const seg = segmented([['all', 'All', false], ['prosing', 'Prosing', true], ['working', 'Working', true]], filter,
+    const seg = segmented('filter', [['all', 'All', false], ['prosing', 'Prosing', true], ['working', 'Working', true]], filter,
       (k) => { const o = document.querySelector('.graph-scroll'); const keep = o ? o.scrollLeft : 0; filter = k; render(); if (selected) { const n = document.querySelector('.graph-scroll'); if (n) n.scrollLeft = keep; } });
 
     const stats = el('div', 'stats');
@@ -539,6 +594,7 @@
             const keep = sc.scrollLeft;
             selected = day; render();
             const nsc = document.querySelector('.graph-scroll'); if (nsc) nsc.scrollLeft = keep;
+            const ns = document.querySelector('.cell.sel'); if (ns) ns.classList.add('pop');
           });
         }
         g.append(cell);
@@ -548,18 +604,9 @@
     wrap.append(wk, sc);
 
     const legend = el('div', 'legend');
-    if (filter === 'all') {
-      for (const k of Object.keys(CATS)) {
-        const it = el('span', 'item'); it.append(dot(k), document.createTextNode(CATS[k])); legend.append(it);
-      }
-      legend.append(el('span', '', 'Color shows the day’s main category'));
-    } else {
-      const p = filter === 'prosing' ? 'p' : 'w';
-      legend.append(el('span', '', 'Less'), el('span', 'gap'));
-      legend.append(el('span', 'cell'));
-      for (const l of [1, 2, 3, 4]) legend.append(el('span', `cell ${p}${l}`));
-      legend.append(el('span', 'gap'), el('span', '', 'More'));
-    }
+    legend.append(el('span', '', 'Less'), el('span', 'gap'), el('span', 'cell'));
+    for (const l of [1, 2, 3, 4]) legend.append(el('span', `cell l${l}`));
+    legend.append(el('span', 'gap'), el('span', '', 'More'));
 
     const syncRow = el('button', 'syncrow');
     syncRow.type = 'button';
@@ -699,6 +746,10 @@
     if (view === 'cal') selected = null;
     view = 'cal'; panel = null; render();
   });
+
+  // ---------- touch ----------
+  document.addEventListener('touchstart', () => {}, { passive: true });   // lets :active press states show on iOS
+  document.addEventListener('gesturestart', (e) => e.preventDefault()); // block pinch zoom
 
   // ---------- boot ----------
   // A session still saved at launch means the page was closed mid-session.
