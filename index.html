@@ -151,9 +151,37 @@
   .seg button[aria-pressed="true"] { color: var(--fg); }
 
   .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+  /* wheel picker (hours / min), after the iOS Timer */
+  .picker { --row: 32px; position: relative; display: grid; grid-template-columns: 1fr 1fr; height: calc(var(--row) * 5); }
+  .picker .band {
+    position: absolute; left: 0; right: 0; top: calc(var(--row) * 2); height: var(--row);
+    background: var(--chip); border-radius: 11px; pointer-events: none;
+  }
+  .picker .col { position: relative; min-width: 0; }
+  .picker .unit {
+    position: absolute; left: 50%; top: calc(var(--row) * 2); height: var(--row); line-height: var(--row);
+    padding-left: 7px; font-size: 15px; font-weight: 400; color: var(--fg); pointer-events: none; z-index: 2;
+  }
+  .wheel {
+    position: relative; z-index: 1; width: 100%;
+    height: calc(var(--row) * 5); overflow-y: scroll; scroll-snap-type: y mandatory;
+    scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y; cursor: grab;
+    perspective: 220px;
+  }
+  .wheel::-webkit-scrollbar { display: none; }
+  .wheel .pad { height: calc(var(--row) * 2); }
+  .wheel .wi {
+    height: var(--row); line-height: var(--row); scroll-snap-align: center;
+    box-sizing: border-box; padding-right: 50%; text-align: right;
+    font-size: 15px; font-weight: 400; font-variant-numeric: tabular-nums;
+    color: var(--fg); transform-origin: center center;
+  }
+  .wheel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
+  .clock.long { font-size: clamp(60px, 18vw, 80px); }
   .chipbtn {
     appearance: none; border: 0; cursor: pointer;
-    height: 40px; border-radius: 12px;
+    height: 32px; border-radius: 11px;
     font: 400 15px/1 var(--font-ui); font-variant-numeric: tabular-nums;
     background: var(--chip); color: var(--fg);
   }
@@ -289,7 +317,7 @@
   let panel = null;                          // null | 'sync'
   let syncState = { busy: false, error: '' };
 
-  const PRESETS = [15, 25, 30, 45, 60, 90];
+  const PRESETS = [[30, '30 min'], [60, '1 hour'], [90, '1.5 hours']];
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const DOW_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -350,7 +378,7 @@
   function tick() {
     if ((phase === 'focusing' || phase === 'confirm') && session) {
       const left = Math.max(0, Math.ceil((session.end - Date.now()) / 1000));
-      if (view === 'timer') $('clock').textContent = clock(left);
+      if (view === 'timer') setClock(left);
       if (left === 0) complete();
     }
   }
@@ -412,6 +440,63 @@
     return s;
   }
 
+  // ---------- wheel picker ----------
+  function wheel(values, value, label, onChange) {
+    const w = el('div', 'wheel');
+    w.tabIndex = 0;
+    w.setAttribute('role', 'spinbutton');
+    w.setAttribute('aria-label', label);
+    w.append(el('div', 'pad'));
+    const items = values.map((v) => { const i = el('div', 'wi', String(v)); w.append(i); return i; });
+    w.append(el('div', 'pad'));
+    let row = 32, idx = Math.max(0, values.indexOf(value)), settle = 0, raf = 0;
+    const paint = () => {
+      raf = 0;
+      const mid = w.scrollTop / row;
+      items.forEach((it, i) => {
+        const d = i - mid;
+        if (Math.abs(d) > 3) { it.style.opacity = '0'; return; }
+        if (Math.abs(d) < 0.04) { it.style.opacity = '1'; it.style.transform = 'none'; return; } // centred row renders as plain text, same as the buttons
+        it.style.opacity = String(Math.max(0, 1 - Math.abs(d) * 0.3));
+        it.style.transform = `rotateX(${-d * 20}deg) scale(${1 - Math.abs(d) * 0.06})`;
+      });
+    };
+    const pick = (i) => {
+      i = Math.max(0, Math.min(values.length - 1, i));
+      if (i !== idx) { idx = i; w.setAttribute('aria-valuenow', values[i]); onChange(values[i]); }
+    };
+    w.addEventListener('scroll', () => {
+      if (!raf) raf = requestAnimationFrame(paint);
+      clearTimeout(settle);
+      settle = setTimeout(() => { pick(Math.round(w.scrollTop / row)); paint(); }, 90);
+    }, { passive: true });
+    w.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); w.set(values[Math.max(0, Math.min(values.length - 1, idx + (e.key === 'ArrowDown' ? 1 : -1)))], true); }
+    });
+    items.forEach((it, i) => it.addEventListener('click', () => w.set(values[i], true)));
+    w.set = (v, smooth) => {
+      const i = values.indexOf(v); if (i < 0) return;
+      w.scrollTo({ top: i * row, behavior: smooth ? 'smooth' : 'auto' });
+      if (!smooth) { idx = i; paint(); }
+    };
+    requestAnimationFrame(() => {
+      row = items[0] ? items[0].getBoundingClientRect().height || 32 : 32;
+      w.scrollTop = idx * row; w.setAttribute('aria-valuenow', values[idx]); paint();
+    });
+    return w;
+  }
+  const fmtLen = (m) => {
+    const h = Math.floor(m / 60), r = m % 60;
+    if (!h) return `${r} minute session`;
+    return r ? `${h} h ${r} min session` : `${h} hour session`;
+  };
+  function setClock(sec) {
+    const ck = $('clock');
+    const txt = sec >= 3600 ? `${Math.floor(sec / 3600)}:${pad(Math.floor(sec % 3600 / 60))}:${pad(sec % 60)}` : clock(sec);
+    ck.textContent = txt;
+    ck.classList.toggle('long', txt.length > 5);
+  }
+
   // ---------- render ----------
   let lastKey = '';
   function render() {
@@ -439,9 +524,9 @@
     ck.classList.toggle('dim', phase === 'success' || phase === 'failed');
 
     if (phase === 'idle') {
-      ck.textContent = clock(minutes * 60);
+      setClock(minutes * 60);
       card.append(
-        head(`${minutes} minute session`, 'Leaving the page or locking the screen ends the session.'),
+        head(fmtLen(minutes), 'Leaving the page or locking the screen ends the session.'),
         segmented('category', [['prosing', 'Prosing', true], ['working', 'Working', true]], category,
           (k) => { category = k; save(K.cat, k); render(); }),
         actions(act('Duration', '', () => { phase = 'picking'; render(); }),
@@ -449,18 +534,38 @@
     }
 
     if (phase === 'picking') {
-      ck.textContent = clock(minutes * 60);
+      setClock(minutes * 60);
+      const hd = head(fmtLen(minutes), 'Pick a preset, or scroll to set your own.');
       const chips = el('div', 'chips');
-      for (const p of PRESETS) {
-        const c = el('button', 'chipbtn', `${p} min`);
+      const chipEls = [];
+      let hWheel, mWheel;
+      const sync = () => {
+        save(K.minutes, minutes);
+        setClock(minutes * 60);
+        hd.querySelector('.card-title').lastChild.textContent = fmtLen(minutes);
+        chipEls.forEach(([p, c]) => c.setAttribute('aria-pressed', String(p === minutes)));
+      };
+      for (const [p, label] of PRESETS) {
+        const c = el('button', 'chipbtn', label);
         c.type = 'button';
-        c.setAttribute('aria-pressed', String(p === minutes));
-        c.addEventListener('click', () => { minutes = p; save(K.minutes, minutes); phase = 'idle'; render(); });
+        c.addEventListener('click', () => {
+          minutes = p; sync();
+          hWheel.set(Math.floor(p / 60), true); mWheel.set(p % 60, true);
+        });
+        chipEls.push([p, c]);
         chips.append(c);
       }
-      const step = (d) => { minutes = Math.min(180, Math.max(5, minutes + d)); save(K.minutes, minutes); render(); };
-      card.append(head('Duration', 'Pick a length, or adjust by 5 minutes.'), chips,
-        actions(act('− 5 min', '', () => step(-5)), act('+ 5 min', '', () => step(5))),
+      minutes = Math.min(3 * 60 + 55, Math.max(5, Math.round(minutes / 5) * 5));   // wheels move in 5-minute steps, up to 3 h 55
+      let hh = Math.floor(minutes / 60), mm = minutes % 60;
+      const update = () => { minutes = Math.max(5, hh * 60 + mm); sync(); };
+      hWheel = wheel([0, 1, 2, 3], hh, 'Hours', (v) => { hh = v; update(); });
+      mWheel = wheel(Array.from({ length: 12 }, (_, i) => i * 5), mm, 'Minutes', (v) => { mm = v; update(); });
+      const picker = el('div', 'picker');
+      const colH = el('div', 'col'); colH.append(hWheel, el('span', 'unit', 'hours'));
+      const colM = el('div', 'col'); colM.append(mWheel, el('span', 'unit', 'min'));
+      picker.append(el('div', 'band'), colH, colM);
+      sync();
+      card.append(hd, chips, picker,
         actions(act('Done', 'primary', () => { phase = 'idle'; render(); })));
     }
 
@@ -480,7 +585,7 @@
     }
 
     if (phase === 'success') {
-      ck.textContent = clock(last.minutes * 60);
+      setClock(last.minutes * 60);
       card.append(
         head('Session complete', `${last.minutes} minutes of ${CATS[last.category].toLowerCase()} added to today.`, last.category),
         actions(act('History', '', () => { phase = 'idle'; view = 'cal'; render(); }),
@@ -488,7 +593,7 @@
     }
 
     if (phase === 'failed') {
-      ck.textContent = clock(last.minutes * 60);
+      setClock(last.minutes * 60);
       card.append(
         head('Session stopped', failText, last.category),
         actions(act('Try again', 'primary', () => { phase = 'idle'; render(); })));
@@ -526,7 +631,7 @@
 
     $('date').textContent = isToday ? 'Today' : longDate(d);
     const ck = $('clock');
-    ck.classList.add('small');
+    ck.classList.add('small'); ck.classList.remove('long');
     ck.classList.toggle('dim', st.s === 0);
     ck.textContent = fmtDur(st.s);
 
@@ -708,7 +813,7 @@
     $('breakdown').hidden = true;
     $('date').textContent = 'Sync';
     const ck = $('clock');
-    ck.classList.add('small'); ck.classList.remove('dim');
+    ck.classList.add('small'); ck.classList.remove('dim', 'long');
     ck.textContent = 'GitHub';
 
     const tokenIn = el('input', 'field');
