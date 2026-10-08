@@ -53,7 +53,7 @@
   }
 
   /* skins (chosen in Settings). Default follows the system's light/dark; the others are fixed light themes */
-  :root[data-skin="chocomint"] { --clock: #6b4532; --bg: #e2f0e8; --card: #f7fcf9; --chip: #d2e6da; --fg: #3a291f; --muted: #7b877f; --line: #c8ddd0; --accent: #6b4532; --on-accent: #ffffff; --prosing: #6b4532; --working: #2f7a62; --cell0: #d5e7dc; color-scheme: light; }
+  :root[data-skin="chocomint"] { --clock: #6b4532; --bg: #cfe8da; --card: #f2faf5; --chip: #bddccb; --fg: #3a291f; --muted: #6c7f74; --line: #b3d3c1; --accent: #6b4532; --on-accent: #ffffff; --prosing: #6b4532; --working: #2f7a62; --cell0: #c2dfcf; color-scheme: light; }
   :root[data-skin="claude"] { --bg: #f5f0e8; --card: #fffdf9; --chip: #ece5da; --fg: #2f2a24; --muted: #8c8478; --line: #e3dbcf; --accent: #d97757; --on-accent: #ffffff; --prosing: #d97757; --working: #6b5a4a; --cell0: #e9e2d6; color-scheme: light; }
   :root[data-skin="lemonnavy"] { --clock: #1d3a8a; --bg: #fbf6d8; --card: #fffdf0; --chip: #f2ebc2; --fg: #1d2a4a; --muted: #7f8193; --line: #ece3b6; --accent: #1d3a8a; --on-accent: #ffffff; --prosing: #d94f30; --working: #1d3a8a; --cell0: #efe7bd; color-scheme: light; }
   :root[data-skin="obsidian"] { --clock: #222222; --bg: #ffffff; --card: #f6f6f6; --chip: #ebebeb; --fg: #222222; --muted: #8a8a8a; --line: #e3e3e3; --accent: #7f6df2; --on-accent: #ffffff; --prosing: #7f6df2; --working: #2e9e9b; --cell0: #ececec; color-scheme: light; }
@@ -66,7 +66,33 @@
   [data-skin="blueprint"] .seg .thumb { background: rgba(255,255,255,.22); }
   [data-skin="blueprint"] .act, [data-skin="blueprint"] .chipbtn, [data-skin="blueprint"] .seg, [data-skin="blueprint"] .seg .thumb, [data-skin="blueprint"] .seg button { border-radius: 3px; }
   [data-skin="blueprint"] .stat .k, [data-skin="blueprint"] .date, [data-skin="blueprint"] .section-k b { font-family: ui-monospace, "SF Mono", Menlo, "DejaVu Sans Mono", monospace; letter-spacing: .04em; }
-  [data-skin="blueprint"] .clock { font-weight: 200; }
+  [data-skin="blueprint"] .clock { font-family: ui-monospace, "SF Mono", Menlo, "DejaVu Sans Mono", monospace; font-weight: 300; font-size: clamp(64px, 20vw, 88px); letter-spacing: -0.03em; line-height: 1.2; }
+
+  /* Chocomint: cartoon — chunky brown outlines, sticker-style offset edges, chocolate chips on mint */
+  :root[data-skin="chocomint"] { --ink: #4a2f22; --font-ui: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif; }
+  [data-skin="chocomint"] body { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22168%22%20height%3D%22168%22%20viewBox%3D%220%200%20168%20168%22%3E%3Cg%20fill%3D%22%235a3826%22%20fill-opacity%3D%22.42%22%3E%3Cpath%20transform%3D%22translate%2816%2020%29%20rotate%280%29%20scale%281%29%22%20d%3D%22M-5%20-2%20Q-4%20-5.5%200%20-5%20L5%20-3%20Q6.5%200%204%203%20Q0%205.5%20-3.5%204%20Q-6.5%201%20-5%20-2Z%22/%3E%3Cpath%20transform%3D%22translate%2892%2010%29%20rotate%2840%29%20scale%280.8%29%22%20d%3D%22M-6%20-1.5%20Q-5%20-3.5%20-1%20-3%20L5.5%20-2.2%20Q7%200%205%202%20L-2%203%20Q-6.5%202.5%20-6%20-1.5Z%22/%3E%3Cpath%20transform%3D%22translate%28146%2058%29%20rotate%28-25%29%20scale%281.1%29%22%20d%3D%22M-3%20-3.5%20Q1%20-4.8%203.5%20-2.5%20Q4.5%201%202%203.5%20Q-1.5%204.5%20-3.8%201.5%20Q-4.6%20-1.5%20-3%20-3.5Z%22/%3E%3Cpath%20transform%3D%22translate%2854%2072%29%20rotate%2870%29%20scale%281%29%22%20d%3D%22M-6%20-1.5%20Q-5%20-3.5%20-1%20-3%20L5.5%20-2.2%20Q7%200%205%202%20L-2%203%20Q-6.5%202.5%20-6%20-1.5Z%22/%3E%3Cpath%20transform%3D%22translate%2812%20118%29%20rotate%2815%29%20scale%280.75%29%22%20d%3D%22M-3%20-3.5%20Q1%20-4.8%203.5%20-2.5%20Q4.5%201%202%203.5%20Q-1.5%204.5%20-3.8%201.5%20Q-4.6%20-1.5%20-3%20-3.5Z%22/%3E%3Cpath%20transform%3D%22translate%28104%20110%29%20rotate%28-50%29%20scale%280.9%29%22%20d%3D%22M-5%20-2%20Q-4%20-5.5%200%20-5%20L5%20-3%20Q6.5%200%204%203%20Q0%205.5%20-3.5%204%20Q-6.5%201%20-5%20-2Z%22/%3E%3Cpath%20transform%3D%22translate%28150%20150%29%20rotate%2830%29%20scale%280.7%29%22%20d%3D%22M-6%20-1.5%20Q-5%20-3.5%20-1%20-3%20L5.5%20-2.2%20Q7%200%205%202%20L-2%203%20Q-6.5%202.5%20-6%20-1.5Z%22/%3E%3Cpath%20transform%3D%22translate%2870%20150%29%20rotate%28-10%29%20scale%281%29%22%20d%3D%22M-3%20-3.5%20Q1%20-4.8%203.5%20-2.5%20Q4.5%201%202%203.5%20Q-1.5%204.5%20-3.8%201.5%20Q-4.6%20-1.5%20-3%20-3.5Z%22/%3E%3Cpath%20transform%3D%22translate%28124%2030%29%20rotate%28120%29%20scale%280.6%29%22%20d%3D%22M-3%20-3.5%20Q1%20-4.8%203.5%20-2.5%20Q4.5%201%202%203.5%20Q-1.5%204.5%20-3.8%201.5%20Q-4.6%20-1.5%20-3%20-3.5Z%22/%3E%3Cpath%20transform%3D%22translate%2836%2040%29%20rotate%28-70%29%20scale%280.55%29%22%20d%3D%22M-3%20-3.5%20Q1%20-4.8%203.5%20-2.5%20Q4.5%201%202%203.5%20Q-1.5%204.5%20-3.8%201.5%20Q-4.6%20-1.5%20-3%20-3.5Z%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 168px 168px; }
+  [data-skin="chocomint"] .clock { font-weight: 600; letter-spacing: 0; color: var(--ink); }
+  [data-skin="chocomint"] .date { font-family: var(--font-ui); font-weight: 600; opacity: 1; color: var(--ink); }
+  [data-skin="chocomint"] .card { border: 2.5px solid var(--ink); border-radius: 24px; box-shadow: 0 5px 0 var(--ink); }
+  [data-skin="chocomint"] .card-title, [data-skin="chocomint"] .stat .k, [data-skin="chocomint"] .section-k b { font-weight: 700; }
+  [data-skin="chocomint"] .act, [data-skin="chocomint"] .chipbtn { border: 2px solid var(--ink); border-radius: 14px; font-weight: 600; box-shadow: 0 3px 0 var(--ink); }
+  [data-skin="chocomint"] .act { height: 40px; }
+  [data-skin="chocomint"] .act:active, [data-skin="chocomint"] .chipbtn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); opacity: 1; }
+  [data-skin="chocomint"] .act.primary { background: var(--ink); }
+  [data-skin="chocomint"] .chipbtn { height: 30px; }
+  [data-skin="chocomint"] .seg { border: 2px solid var(--ink); border-radius: 14px; padding: 2px; }
+  [data-skin="chocomint"] .seg .thumb { top: 2px; bottom: 2px; left: 2px; border-radius: 10px; background: #ffffff; box-shadow: inset 0 0 0 2px var(--ink); }
+  [data-skin="chocomint"] .seg button { height: 25px; font-weight: 600; }
+  [data-skin="chocomint"] .picker .band { border: 2px solid var(--ink); border-radius: 14px; }
+  [data-skin="chocomint"] .field { border: 2px solid var(--ink); border-radius: 14px; background: #ffffff; }
+  [data-skin="chocomint"] .cell { border-radius: 3.5px; }
+  [data-skin="chocomint"] .cell.sel { outline: 2px solid var(--ink); }
+  [data-skin="chocomint"] .tool { color: var(--ink); }
+  [data-skin="chocomint"] .tool svg, [data-skin="chocomint"] .tool svg * { stroke-width: 2.1; }
+  [data-skin="chocomint"] .mark .ring { stroke-width: 6.5; }
+  [data-skin="chocomint"] .mark .check { stroke-width: 7.5; }
+  [data-skin="chocomint"] .mark .track { stroke-width: 6.5; stroke: rgba(74,47,34,.15); }
+  [data-skin="chocomint"] .dot { box-shadow: 0 0 0 1.5px var(--ink); }
 
   html, body { height: 100%; touch-action: manipulation; }
   *, button { touch-action: manipulation; }
@@ -327,13 +353,14 @@
   .act.mini { height: 32px; border-radius: 11px; padding-inline: 16px; }
 
   /* success: the clock gives way to a ring that closes, then a check */
-  .mark { display: none; width: 118px; height: 118px; margin-top: -4px; margin-bottom: -6px; overflow: visible; color: var(--accent); }
+  .mark { display: none; font-size: clamp(76px, 24vw, 104px); --lh: 1.02em; width: .8em; height: .8em; margin-block: calc((var(--lh) - .8em) / 2); overflow: visible; color: var(--accent); }
   .mark.prosing { color: var(--prosing); }
   .mark.working { color: var(--working); }
   .mark circle, .mark path { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
   .mark .track { stroke: var(--line); stroke-width: 2.5; }
   .mark .ring { stroke-width: 3; stroke-dasharray: 100; stroke-dashoffset: 0; transform: rotate(-90deg); transform-origin: 50px 50px; }
   .mark .check { stroke-width: 3.5; stroke-dasharray: 100; stroke-dashoffset: 0; }
+  [data-skin="blueprint"] .mark { font-size: clamp(64px, 20vw, 88px); --lh: 1.2em; }
   .top.won .clock { display: none; }
   .top.won .mark { display: block; }
   .mark.play { animation: markpop .42s 1.02s cubic-bezier(.3,.7,.2,1) both; }
@@ -387,7 +414,7 @@
     ['default',   'Default',   '#f4f3ef', '#4f6478', '#ffffff'],
     ['claude',    'Claude',    '#f5f0e8', '#d97757', '#fffdf9'],
     ['obsidian',  'Obsidian',  '#ffffff', '#7f6df2', '#f6f6f6'],
-    ['chocomint', 'Chocomint', '#e2f0e8', '#6b4532', '#f7fcf9'],
+    ['chocomint', 'Chocomint', '#cfe8da', '#6b4532', '#f2faf5'],
     ['lemonnavy', 'Lemon Navy', '#fbf6d8', '#1d3a8a', '#fffdf0'],
     ['coralbutter', 'Coral Butter', '#fff4d1', '#ff6f61', '#fffcf0'],
     ['blueprint', 'Blueprint', '#1d4c9c', '#ffffff', '#3a66b0'],
