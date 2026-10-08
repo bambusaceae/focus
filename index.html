@@ -97,8 +97,17 @@
   .scrim { position: fixed; inset: 0; z-index: 1; }
   .card, .bottom { position: relative; z-index: 2; }
   .round.ghost { visibility: hidden; }
-  .round.bare, .round.bare[aria-pressed="true"] { background: transparent; color: var(--fg); }
-  .round.bare svg { width: 26px; height: 26px; }
+  .app .bottom { justify-content: flex-end; gap: 4px; padding-right: 2px; }
+  .tool {
+    appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
+    width: 44px; height: 44px; display: grid; place-items: center;
+    color: var(--muted); transition: color .2s ease, transform .14s ease, opacity .2s ease;
+  }
+  .tool svg { width: 25px; height: 25px; }
+  .tool[aria-pressed="true"] { color: var(--fg); }
+  .tool:active { transform: scale(.9); }
+  .tool:disabled { opacity: .35; cursor: default; }
+  .tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
   .card.leave { animation: sink .16s ease both; }
   @keyframes sink { to { opacity: 0; transform: translateY(8px); } }
 
@@ -312,11 +321,9 @@
   <div class="card" id="card"></div>
 
   <div class="bottom">
-    <span class="round ghost" aria-hidden="true"></span>
-    <div class="center-label" id="center-label">Today 0m</div>
-    <button class="round bare" id="btn-cal" type="button" aria-label="History" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
-    </button>
+    <button class="tool" id="btn-cal" type="button" aria-label="History" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="8.5" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="8.5" cy="16.8" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="16.8" r=".6" fill="currentColor" stroke="none"/></svg></button>
+    <button class="tool" id="btn-theme" type="button" aria-label="Theme" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5c.7 1.3 1.8 1.9 3 1.9s2.3-.6 3-1.9l5.5 2.4-1.9 4.2-2.3-.9v8.8H6.7v-8.8l-2.3.9-1.9-4.2L9 5z"/></svg></button>
+    <button class="tool" id="btn-sync" type="button" aria-label="GitHub Sync" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(12 12) scale(.9) translate(-12 -12)" stroke-width="1.78"><path d="M19.5 9.5A8 8 0 0 0 5.2 7.2"/><path d="M5 3.5v4h4"/><path d="M4.5 14.5a8 8 0 0 0 14.3 2.3"/><path d="M19 20.5v-4h-4"/></g></svg></button>
   </div>
 </div>
 
@@ -371,7 +378,7 @@
   let last = { minutes, category };
   let failText = '';
   let selected = null;
-  let panel = null;                          // null | 'sync'
+  let panel = 'history';                     // history | theme | sync (which card the bottom tools opened)
   let syncState = { busy: false, error: '' };
 
   const PRESETS = [[30, '30 min'], [60, '1 hour'], [90, '1.5 hours']];
@@ -566,22 +573,23 @@
     } else {
       card.classList.remove('enter');
     }
-    $('btn-cal').setAttribute('aria-pressed', String(view === 'cal'));
-    $('btn-cal').setAttribute('aria-label', view === 'cal' ? 'Close history' : 'History');
-    $('btn-cal').disabled = phase === 'focusing' || phase === 'confirm';
+    const busy = phase === 'focusing' || phase === 'confirm';
+    for (const [id, name] of [['btn-cal', 'history'], ['btn-theme', 'theme'], ['btn-sync', 'sync']]) {
+      $(id).setAttribute('aria-pressed', String(view === 'cal' && panel === name));
+      $(id).disabled = busy;
+    }
     $('scrim').hidden = view !== 'cal';
     const today = new Date();
-    $('center-label').textContent = `Today ${fmtDur(rec(today).s)}`;
 
     // the top (date + timer) always shows the timer, whether or not history is open
-    dt.textContent = longDate(today);
+    dt.textContent = `Today ${fmtDur(rec(today).s)}`;
     ck.classList.remove('small', 'long');
     ck.classList.toggle('dim', phase === 'success' || phase === 'failed');
     if (phase === 'idle' || phase === 'picking') setClock(minutes * 60);
     else if (phase === 'focusing' || phase === 'confirm') tick();
     else setClock(last.minutes * 60);
 
-    if (view === 'cal') { if (panel === 'sync') renderSync(); else renderCal(); return; }
+    if (view === 'cal') { if (panel === 'sync') renderSync(); else if (panel === 'theme') renderTheme(); else renderCal(); return; }
 
     if (phase === 'idle') {
       setClock(minutes * 60);
@@ -648,7 +656,7 @@
       setClock(last.minutes * 60);
       card.append(
         head('Session complete', `${last.minutes} minutes of ${CATS[last.category].toLowerCase()} added to today.`, last.category),
-        actions(act('History', '', () => { phase = 'idle'; view = 'cal'; render(); }),
+        actions(act('History', '', () => { phase = 'idle'; view = 'cal'; panel = 'history'; selected = null; render(); }),
                 act('OK', 'primary', () => { phase = 'idle'; render(); })));
     }
 
@@ -766,13 +774,9 @@
     for (const l of [1, 2, 3, 4]) legend.append(el('span', `cell ${shade()}${l}`));
     legend.append(el('span', 'gap'), el('span', '', 'More'));
 
-    const syncRow = el('button', 'syncrow');
-    syncRow.type = 'button';
-    syncRow.append(el('span', '', syncLabel()), el('span', 'go', 'Settings'));
-    syncRow.addEventListener('click', () => { panel = 'sync'; render(); });
     card.append(seg, stats);
     if (day.childElementCount) card.append(day);
-    card.append(el('div', 'rule'), wrap, legend, el('div', 'rule'), syncRow);
+    card.append(el('div', 'rule'), wrap, legend);
     if (!selected) {
       sc.scrollLeft = sc.scrollWidth;
       requestAnimationFrame(() => { sc.scrollLeft = sc.scrollWidth; });
@@ -874,6 +878,22 @@
     repoIn.value = getRepo();
     const lab = (t, f) => { const w = el('label', 'fieldwrap'); w.append(el('span', 'k', t), f); return w; };
 
+
+    const syncBtn = act('Sync', 'primary mini', async () => {
+      const t = tokenIn.value.trim();
+      if (t) save(K.token, t);
+      save(K.repo, repoIn.value.trim() || 'bambusaceae/focus-data');
+      await sync();
+      render();
+    });
+    const tokenRow = el('div', 'fieldrow');
+    tokenRow.append(lab('Token', tokenIn), syncBtn);
+    const syncHead = el('div', 'section-k');
+    syncHead.append(el('b', '', 'GitHub Sync'), document.createTextNode(getToken() ? syncLabel() : 'Off'));
+    card.append(syncHead, lab('Repository', repoIn), tokenRow);
+  }
+  function renderTheme() {
+    const card = $('card');
     const skins = el('div', 'skins');
     let cur = load(K.skin, 'default'); if (!SKINS.some((x) => x[0] === cur)) cur = 'default';
     for (const [k, name, bg, accent, card2] of SKINS) {
@@ -888,38 +908,28 @@
       b.addEventListener('click', () => { save(K.skin, k); applySkin(k); render(); });
       skins.append(b);
     }
-
-    const syncBtn = act('Sync', 'primary mini', async () => {
-      const t = tokenIn.value.trim();
-      if (t) save(K.token, t);
-      save(K.repo, repoIn.value.trim() || 'bambusaceae/focus-data');
-      await sync();
-      render();
-    });
-    const tokenRow = el('div', 'fieldrow');
-    tokenRow.append(lab('Token', tokenIn), syncBtn);
-    const syncHead = el('div', 'section-k');
-    syncHead.append(el('b', '', 'GitHub Sync'), document.createTextNode(getToken() ? syncLabel() : 'Off'));
     const themeHead = el('div', 'section-k');
     themeHead.append(el('b', '', 'Theme'));
-
-    card.append(themeHead, skins, el('div', 'rule'), syncHead, lab('Repository', repoIn), tokenRow);
+    card.append(themeHead, skins);
   }
   window.addEventListener('online', () => sync());
 
   // ---------- bottom buttons ----------
-  function openHistory() {
+  function openPanel(name) {
     if (phase === 'focusing' || phase === 'confirm') return;
-    selected = null; panel = null; view = 'cal'; render();
+    if (view === 'cal' && panel === name) { closeHistory(); return; }
+    selected = null; panel = name; view = 'cal'; render();
   }
   function closeHistory() {
     if (view !== 'cal') return;
     const card = $('card');
     $('scrim').hidden = true;
     card.classList.remove('enter'); card.classList.add('leave');
-    setTimeout(() => { view = 'timer'; panel = null; render(); }, 150);
+    setTimeout(() => { view = 'timer'; render(); }, 150);
   }
-  $('btn-cal').addEventListener('click', () => (view === 'cal' ? closeHistory() : openHistory()));
+  $('btn-cal').addEventListener('click', () => openPanel('history'));
+  $('btn-theme').addEventListener('click', () => openPanel('theme'));
+  $('btn-sync').addEventListener('click', () => openPanel('sync'));
   $('scrim').addEventListener('click', closeHistory);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeHistory(); });
 
@@ -937,7 +947,7 @@
   }
   render();
   sync();
-  setInterval(() => { $('date').textContent = longDate(new Date()); }, 60000);
+  setInterval(() => { $('date').textContent = `Today ${fmtDur(rec(new Date()).s)}`; }, 60000);
 })();
 </script>
 
