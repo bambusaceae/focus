@@ -53,6 +53,10 @@
     color-scheme: dark;
   }
 
+  /* skins (chosen in Settings). Default follows the system's light/dark; the others are fixed light themes */
+  :root[data-skin="chocomint"] { --bg: #e2f0e8; --card: #f7fcf9; --chip: #d2e6da; --fg: #3a291f; --muted: #7b877f; --line: #c8ddd0; --accent: #6b4532; --on-accent: #ffffff; --prosing: #6b4532; --working: #2f7a62; --cell0: #d5e7dc; color-scheme: light; }
+  :root[data-skin="claude"] { --bg: #f5f0e8; --card: #fffdf9; --chip: #ece5da; --fg: #2f2a24; --muted: #8c8478; --line: #e3dbcf; --accent: #d97757; --on-accent: #ffffff; --prosing: #d97757; --working: #6b5a4a; --cell0: #e9e2d6; color-scheme: light; }
+
   html, body { height: 100%; touch-action: manipulation; }
   *, button { touch-action: manipulation; }
   body {
@@ -88,13 +92,21 @@
   }
   .clock.dim { color: var(--muted); }
   .clock.small { font-size: clamp(56px, 17vw, 76px); }
-  .breakdown { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 1.3em; }
-  .breakdown .line { display: grid; grid-template-columns: 8px 3.4em 4.6em 4.2em; align-items: center; column-gap: 10px; }
-  .breakdown .line .t { text-align: left; }
-  .breakdown .line .dur { color: var(--fg); text-align: right; }
-  .breakdown .line .cat { text-align: left; }
-  .breakdown .empty { font-size: 13px; }
-  .breakdown .more { font-size: 12px; }
+  /* history overlay: a transparent layer catches taps outside the card */
+  .scrim { position: fixed; inset: 0; z-index: 1; }
+  .card, .bottom { position: relative; z-index: 2; }
+  .round.ghost { visibility: hidden; }
+  .card.leave { animation: sink .16s ease both; }
+  @keyframes sink { to { opacity: 0; transform: translateY(8px); } }
+
+  /* selected day inside the history card */
+  .day { display: flex; flex-direction: column; gap: 6px; padding-inline: 2px; }
+  .dayhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .dayhead .d { font-size: 15px; font-weight: 500; }
+  .dayhead .v { font-size: 15px; font-variant-numeric: tabular-nums; }
+  .sline { display: grid; grid-template-columns: 8px 3.2em 1fr auto; align-items: center; column-gap: 10px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .sline .dur { color: var(--fg); }
+  .day .empty, .day .more { font-size: 13px; color: var(--muted); }
 
   .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
   .dot.prosing { background: var(--prosing); }
@@ -260,6 +272,24 @@
     font: 300 15px/1 var(--font-ui);
   }
   .field:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  .skins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .skin {
+    appearance: none; border: 0; padding: 0; background: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: stretch; gap: 5px;
+    font: 400 12px/1.2 var(--font-ui); color: var(--muted); text-align: center;
+    transition: transform .14s ease;
+  }
+  .skin:active { transform: scale(.96); }
+  .skin .sw {
+    height: 44px; border-radius: 11px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+    display: flex; align-items: flex-end; justify-content: space-between; padding: 7px 8px;
+  }
+  .skin .sw i { display: block; width: 18px; height: 6px; border-radius: 3px; }
+  .skin .sw b { display: block; width: 26px; height: 14px; border-radius: 5px; }
+  .skin[aria-pressed="true"] { color: var(--fg); }
+  .skin[aria-pressed="true"] .sw { box-shadow: inset 0 0 0 1px rgba(0,0,0,.08), 0 0 0 2px var(--card), 0 0 0 3.5px var(--fg); }
+  .skin:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
+  .section-k { font-size: 12px; color: var(--muted); padding-inline: 2px; }
 </style>
 
 </head>
@@ -268,32 +298,45 @@
   <div class="top">
     <div class="date" id="date">Wednesday, October 7</div>
     <div class="clock" id="clock">25:00</div>
-    <div class="breakdown" id="breakdown" hidden></div>
   </div>
 
   <div class="middle"></div>
 
+  <div class="scrim" id="scrim" hidden></div>
   <div class="card" id="card"></div>
 
   <div class="bottom">
-    <button class="round" id="btn-timer" type="button" aria-label="Timer" aria-pressed="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg>
-    </button>
+    <span class="round ghost" aria-hidden="true"></span>
     <div class="center-label" id="center-label">Today 0m</div>
     <button class="round" id="btn-cal" type="button" aria-label="History" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3.5" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="16" y="3.5" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="16" y="9.75" width="4.5" height="4.5" rx="1"/><rect x="3.5" y="16" width="4.5" height="4.5" rx="1"/><rect x="9.75" y="16" width="4.5" height="4.5" rx="1"/><rect x="16" y="16" width="4.5" height="4.5" rx="1"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
     </button>
   </div>
 </div>
 
 <script>
 (() => {
-  const K = { minutes: 'fg.minutes', records: 'fg.records', sessions: 'fg.sessions', session: 'fg.session', cat: 'fg.category', token: 'fg.token', repo: 'fg.repo', synced: 'fg.syncedAt' };
+  const K = { skin: 'fg.skin', minutes: 'fg.minutes', records: 'fg.records', sessions: 'fg.sessions', session: 'fg.session', cat: 'fg.category', token: 'fg.token', repo: 'fg.repo', synced: 'fg.syncedAt' };
   const load = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const drop = (k) => { try { localStorage.removeItem(k); } catch (e) {} };
 
   const CATS = { prosing: 'Prosing', working: 'Working' };
+
+  // ---------- skins ----------
+  const SKINS = [
+    ['default',   'Default',   '#f4f3ef', '#4f6478', '#ffffff'],
+    ['chocomint', 'Chocomint', '#e2f0e8', '#6b4532', '#f7fcf9'],
+    ['claude',    'Claude',    '#f5f0e8', '#d97757', '#fffdf9'],
+  ];
+  function applySkin(k) {
+    const root = document.documentElement;
+    if (!SKINS.some((x) => x[0] === k) || k === 'default') delete root.dataset.skin; else root.dataset.skin = k;
+    requestAnimationFrame(() => {
+      const bg = getComputedStyle(document.body).backgroundColor;
+      document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bg));
+    });
+  }
 
   let minutes = load(K.minutes, 25);
   let category = load(K.cat, 'prosing');
@@ -386,7 +429,7 @@
   function tick() {
     if ((phase === 'focusing' || phase === 'confirm') && session) {
       const left = Math.max(0, Math.ceil((session.end - Date.now()) / 1000));
-      if (view === 'timer') setClock(left);
+      setClock(left);
       if (left === 0) complete();
     }
   }
@@ -509,26 +552,30 @@
   function render() {
     const card = $('card'), ck = $('clock'), dt = $('date');
     card.replaceChildren();
+    card.classList.remove('leave');
     const key = `${view}|${panel}|${view === 'timer' ? phase : ''}`;
     if (key !== lastKey) {
       card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter');
-      if (lastKey && key.split('|')[0] !== lastKey.split('|')[0]) { const t = document.querySelector('.top'); t.classList.remove('fade'); void t.offsetWidth; t.classList.add('fade'); }
       lastKey = key;
     } else {
       card.classList.remove('enter');
     }
-    $('btn-timer').setAttribute('aria-pressed', String(view === 'timer'));
     $('btn-cal').setAttribute('aria-pressed', String(view === 'cal'));
+    $('btn-cal').setAttribute('aria-label', view === 'cal' ? 'Close history' : 'History');
     $('btn-cal').disabled = phase === 'focusing' || phase === 'confirm';
+    $('scrim').hidden = view !== 'cal';
     const today = new Date();
     $('center-label').textContent = `Today ${fmtDur(rec(today).s)}`;
 
-    if (view === 'cal') { if (panel === 'sync') renderSync(); else renderCal(); return; }
-
-    $('breakdown').hidden = true;
+    // the top (date + timer) always shows the timer, whether or not history is open
     dt.textContent = longDate(today);
-    ck.classList.remove('small');
+    ck.classList.remove('small', 'long');
     ck.classList.toggle('dim', phase === 'success' || phase === 'failed');
+    if (phase === 'idle' || phase === 'picking') setClock(minutes * 60);
+    else if (phase === 'focusing' || phase === 'confirm') tick();
+    else setClock(last.minutes * 60);
+
+    if (view === 'cal') { if (panel === 'sync') renderSync(); else renderCal(); return; }
 
     if (phase === 'idle') {
       setClock(minutes * 60);
@@ -537,7 +584,7 @@
         segmented('category', [['prosing', 'Prosing', true], ['working', 'Working', true]], category,
           (k) => { category = k; save(K.cat, k); render(); }),
         actions(act('Duration', '', () => { phase = 'picking'; render(); }),
-                act('Start', `primary ${category}`, start)));
+                act('Start', 'primary', start)));
     }
 
     if (phase === 'picking') {
@@ -588,7 +635,7 @@
       card.append(
         head('Give up this session?', 'It won’t be added to your history.', session.category),
         actions(act('Keep going', '', () => { phase = 'focusing'; render(); }),
-                act('Give up', `primary ${session.category}`, () => fail('You gave up this session.'))));
+                act('Give up', 'primary', () => fail('You gave up this session.'))));
     }
 
     if (phase === 'success') {
@@ -596,7 +643,7 @@
       card.append(
         head('Session complete', `${last.minutes} minutes of ${CATS[last.category].toLowerCase()} added to today.`, last.category),
         actions(act('History', '', () => { phase = 'idle'; view = 'cal'; render(); }),
-                act('OK', `primary ${last.category}`, () => { phase = 'idle'; render(); })));
+                act('OK', 'primary', () => { phase = 'idle'; render(); })));
     }
 
     if (phase === 'failed') {
@@ -638,32 +685,26 @@
     const st = stat(d, filter);
     const isToday = dayKey(d) === dayKey(today);
 
-    $('date').textContent = isToday ? 'Today' : longDate(d);
-    const ck = $('clock');
-    ck.classList.add('small'); ck.classList.remove('long');
-    ck.classList.toggle('dim', st.s === 0);
-    ck.textContent = fmtDur(st.s);
-
-    const bd = $('breakdown');
-    bd.replaceChildren();
-    bd.hidden = false;
+    const day = el('div', 'day');
+    const dh = el('div', 'dayhead');
+    dh.append(el('span', 'd', isToday ? 'Today' : longDate(d)), el('span', 'v', fmtDur(st.s)));
+    day.append(dh);
     const list = daySessions(d);
-    const shown = list.slice(-5);
+    const shown = list.slice(-4);
+    if (list.length > shown.length) day.append(el('div', 'more', `+ ${list.length - shown.length} earlier`));
     for (const x of shown) {
-      const line = el('div', 'line');
+      const line = el('div', 'sline');
       line.append(dot(x.category), el('span', 't', hhmm(x.start)), el('span', 'cat', CATS[x.category] || ''), el('span', 'dur', fmtDur(x.minutes * 60)));
-      bd.append(line);
+      day.append(line);
     }
-    if (list.length > shown.length) bd.append(el('div', 'more', `+ ${list.length - shown.length} earlier`));
     const sessSec = list.reduce((a, x) => a + x.minutes * 60, 0);
     const older = st.s - sessSec;              // time saved before per-session records existed
     if (older > 0) {
-      const line = el('div', 'line');
+      const line = el('div', 'sline');
       line.append(el('span'), el('span', 't', '—'), el('span', 'cat', 'Earlier'), el('span', 'dur', fmtDur(older)));
-      bd.append(line);
+      day.append(line);
     }
-    if (!list.length && older <= 0) bd.append(el('div', 'empty', 'No sessions'));
-    bd.classList.remove('fade'); void bd.offsetWidth; bd.classList.add('fade');
+    if (!list.length && older <= 0) day.append(el('div', 'empty', 'No sessions'));
 
     const mon = mondayOf(today);
     let week = 0;
@@ -724,9 +765,9 @@
 
     const syncRow = el('button', 'syncrow');
     syncRow.type = 'button';
-    syncRow.append(el('span', '', syncLabel()), el('span', 'go', getToken() ? 'Settings' : 'Set up'));
+    syncRow.append(el('span', '', syncLabel()), el('span', 'go', 'Settings'));
     syncRow.addEventListener('click', () => { panel = 'sync'; render(); });
-    card.append(seg, stats, el('div', 'rule'), wrap, legend, el('div', 'rule'), syncRow);
+    card.append(seg, day, stats, el('div', 'rule'), wrap, legend, el('div', 'rule'), syncRow);
     if (!selected) {
       sc.scrollLeft = sc.scrollWidth;
       requestAnimationFrame(() => { sc.scrollLeft = sc.scrollWidth; });
@@ -819,11 +860,6 @@
 
   function renderSync() {
     const card = $('card');
-    $('breakdown').hidden = true;
-    $('date').textContent = 'Sync';
-    const ck = $('clock');
-    ck.classList.add('small'); ck.classList.remove('dim', 'long');
-    ck.textContent = 'GitHub';
 
     const tokenIn = el('input', 'field');
     tokenIn.id = 'sync-token'; tokenIn.type = 'password'; tokenIn.autocomplete = 'off';
@@ -833,8 +869,27 @@
     repoIn.value = getRepo();
     const lab = (t, f) => { const w = el('label', 'fieldwrap'); w.append(el('span', 'k', t), f); return w; };
 
+    const skins = el('div', 'skins');
+    let cur = load(K.skin, 'default'); if (!SKINS.some((x) => x[0] === cur)) cur = 'default';
+    for (const [k, name, bg, accent, card2] of SKINS) {
+      const b = el('button', 'skin');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(k === cur));
+      const sw = el('span', 'sw'); sw.style.background = bg;
+      const bar = el('i'); bar.style.background = card2 === bg ? '#e5e5e5' : card2;
+      const pill = el('b'); pill.style.background = accent;
+      sw.append(bar, pill);
+      b.append(sw, document.createTextNode(name));
+      b.addEventListener('click', () => { save(K.skin, k); applySkin(k); render(); });
+      skins.append(b);
+    }
+
     card.append(
-      head('GitHub sync', syncLabel()),
+      head('Settings', ''),
+      el('div', 'section-k', 'Theme'),
+      skins,
+      el('div', 'rule'),
+      el('div', 'section-k', getToken() ? `GitHub sync · ${syncLabel()}` : 'GitHub sync · Off'),
       lab('Repository', repoIn),
       lab('Token', tokenIn),
       actions(
@@ -854,18 +909,27 @@
   window.addEventListener('online', () => sync());
 
   // ---------- bottom buttons ----------
-  $('btn-timer').addEventListener('click', () => { view = 'timer'; panel = null; render(); });
-  $('btn-cal').addEventListener('click', () => {
+  function openHistory() {
     if (phase === 'focusing' || phase === 'confirm') return;
-    if (view === 'cal') selected = null;
-    view = 'cal'; panel = null; render();
-  });
+    selected = null; panel = null; view = 'cal'; render();
+  }
+  function closeHistory() {
+    if (view !== 'cal') return;
+    const card = $('card');
+    $('scrim').hidden = true;
+    card.classList.remove('enter'); card.classList.add('leave');
+    setTimeout(() => { view = 'timer'; panel = null; render(); }, 150);
+  }
+  $('btn-cal').addEventListener('click', () => (view === 'cal' ? closeHistory() : openHistory()));
+  $('scrim').addEventListener('click', closeHistory);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeHistory(); });
 
   // ---------- touch ----------
   document.addEventListener('touchstart', () => {}, { passive: true });   // lets :active press states show on iOS
   document.addEventListener('gesturestart', (e) => e.preventDefault()); // block pinch zoom
 
   // ---------- boot ----------
+  applySkin(load(K.skin, 'default'));
   // A session still saved at launch means the page was closed mid-session.
   if (session) {
     last = { minutes: session.minutes, category: session.category || category };
@@ -874,7 +938,7 @@
   }
   render();
   sync();
-  setInterval(() => { if (view === 'timer' && (phase === 'idle' || phase === 'picking')) $('date').textContent = longDate(new Date()); }, 60000);
+  setInterval(() => { $('date').textContent = longDate(new Date()); }, 60000);
 })();
 </script>
 
