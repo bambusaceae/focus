@@ -1074,7 +1074,8 @@
     if (!syncState.error && load(K.dirty, 0) > startedAt) sync();   // a session finished while this sync was running
   }
   // the sync button shows an x while there are finished sessions GitHub doesn't have yet
-  function paintSync() { $('btn-sync').classList.toggle('unsynced', !!load(K.dirty, 0)); }
+  // …and also whenever GitHub Sync is off (no token saved)
+  function paintSync() { $('btn-sync').classList.toggle('unsynced', !getToken() || !!load(K.dirty, 0)); }
 
   function renderSync() {
     const card = $('card');
