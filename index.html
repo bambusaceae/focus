@@ -96,6 +96,8 @@
   .scrim { position: fixed; inset: 0; z-index: 1; }
   .card, .bottom { position: relative; z-index: 2; }
   .round.ghost { visibility: hidden; }
+  .round.bare, .round.bare[aria-pressed="true"] { background: transparent; color: var(--fg); }
+  .round.bare svg { width: 26px; height: 26px; }
   .card.leave { animation: sink .16s ease both; }
   @keyframes sink { to { opacity: 0; transform: translateY(8px); } }
 
@@ -266,8 +268,8 @@
   .fieldwrap { display: flex; flex-direction: column; gap: 5px; padding-inline: 2px; }
   .fieldwrap .k { font-size: 12px; color: var(--muted); }
   .field {
-    -webkit-user-select: text; user-select: text;
-    height: 40px; border-radius: 10px; border: 0; padding-inline: 12px;
+    -webkit-user-select: text; user-select: text; min-width: 0; box-sizing: border-box;
+    height: 32px; border-radius: 11px; border: 0; padding-inline: 12px;
     background: var(--chip); color: var(--fg);
     font: 300 15px/1 var(--font-ui);
   }
@@ -290,6 +292,9 @@
   .skin[aria-pressed="true"] .sw { box-shadow: inset 0 0 0 1px rgba(0,0,0,.08), 0 0 0 2px var(--card), 0 0 0 3.5px var(--fg); }
   .skin:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
   .section-k { font-size: 12px; color: var(--muted); padding-inline: 2px; }
+  .section-k b { font-weight: 500; color: var(--fg); margin-right: 6px; }
+  .fieldrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+  .act.mini { height: 32px; border-radius: 11px; padding-inline: 16px; }
 </style>
 
 </head>
@@ -308,7 +313,7 @@
   <div class="bottom">
     <span class="round ghost" aria-hidden="true"></span>
     <div class="center-label" id="center-label">Today 0m</div>
-    <button class="round" id="btn-cal" type="button" aria-label="History" aria-pressed="false">
+    <button class="round bare" id="btn-cal" type="button" aria-label="History" aria-pressed="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
     </button>
   </div>
@@ -884,27 +889,21 @@
       skins.append(b);
     }
 
-    card.append(
-      head('Settings', ''),
-      el('div', 'section-k', 'Theme'),
-      skins,
-      el('div', 'rule'),
-      el('div', 'section-k', getToken() ? `GitHub sync · ${syncLabel()}` : 'GitHub sync · Off'),
-      lab('Repository', repoIn),
-      lab('Token', tokenIn),
-      actions(
-        act(getToken() ? 'Remove token' : 'Back', '', () => {
-          if (getToken()) { drop(K.token); drop(K.synced); syncState = { busy: false, error: '' }; render(); }
-          else { panel = null; render(); }
-        }),
-        act('Save & sync', 'primary', async () => {
-          const t = tokenIn.value.trim();
-          if (t) save(K.token, t);
-          save(K.repo, repoIn.value.trim() || 'bambusaceae/focus-data');
-          await sync();
-          render();
-        })),
-      actions(act('Done', '', () => { panel = null; render(); })));
+    const syncBtn = act('Sync', 'primary mini', async () => {
+      const t = tokenIn.value.trim();
+      if (t) save(K.token, t);
+      save(K.repo, repoIn.value.trim() || 'bambusaceae/focus-data');
+      await sync();
+      render();
+    });
+    const tokenRow = el('div', 'fieldrow');
+    tokenRow.append(lab('Token', tokenIn), syncBtn);
+    const syncHead = el('div', 'section-k');
+    syncHead.append(el('b', '', 'GitHub sync'), document.createTextNode(getToken() ? syncLabel() : 'Off'));
+    const themeHead = el('div', 'section-k');
+    themeHead.append(el('b', '', 'Theme'));
+
+    card.append(themeHead, skins, el('div', 'rule'), syncHead, lab('Repository', repoIn), tokenRow);
   }
   window.addEventListener('online', () => sync());
 
