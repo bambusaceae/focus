@@ -217,6 +217,14 @@
   .cell.l2 { background: color-mix(in srgb, var(--fg) 45%, var(--cell0)); }
   .cell.l3 { background: color-mix(in srgb, var(--fg) 68%, var(--cell0)); }
   .cell.l4 { background: color-mix(in srgb, var(--fg) 90%, var(--cell0)); }
+  .cell.p1 { background: color-mix(in srgb, var(--prosing) 30%, var(--cell0)); }
+  .cell.p2 { background: color-mix(in srgb, var(--prosing) 55%, var(--cell0)); }
+  .cell.p3 { background: color-mix(in srgb, var(--prosing) 80%, var(--cell0)); }
+  .cell.p4 { background: var(--prosing); }
+  .cell.w1 { background: color-mix(in srgb, var(--working) 30%, var(--cell0)); }
+  .cell.w2 { background: color-mix(in srgb, var(--working) 55%, var(--cell0)); }
+  .cell.w3 { background: color-mix(in srgb, var(--working) 80%, var(--cell0)); }
+  .cell.w4 { background: var(--working); }
   .cell { transition: transform .15s ease; }
   .cell:active { transform: scale(.8); }
   .cell.sel { outline: 1.5px solid var(--fg); outline-offset: 1px; }
@@ -492,9 +500,8 @@
   };
   function setClock(sec) {
     const ck = $('clock');
-    const txt = sec >= 3600 ? `${Math.floor(sec / 3600)}:${pad(Math.floor(sec % 3600 / 60))}:${pad(sec % 60)}` : clock(sec);
-    ck.textContent = txt;
-    ck.classList.toggle('long', txt.length > 5);
+    ck.textContent = clock(sec);           // always minutes:seconds, e.g. 1.5 h → 90:00
+    ck.classList.remove('long');
   }
 
   // ---------- render ----------
@@ -612,9 +619,11 @@
     return (r.c && r.c[f]) || { s: 0, n: 0 };
   }
   const lvl = (s) => s === 0 ? 0 : s < 1800 ? 1 : s < 3600 ? 2 : s < 7200 ? 3 : 4;
+  // All = gray; Prosing / Working = that category's color
+  const shade = () => filter === 'prosing' ? 'p' : filter === 'working' ? 'w' : 'l';
   function cellClass(d) {
     const l = lvl(stat(d, filter).s);
-    return l ? `l${l}` : '';
+    return l ? `${shade()}${l}` : '';
   }
   // the sessions behind one day, oldest first
   function daySessions(d) {
@@ -710,7 +719,7 @@
 
     const legend = el('div', 'legend');
     legend.append(el('span', '', 'Less'), el('span', 'gap'), el('span', 'cell'));
-    for (const l of [1, 2, 3, 4]) legend.append(el('span', `cell l${l}`));
+    for (const l of [1, 2, 3, 4]) legend.append(el('span', `cell ${shade()}${l}`));
     legend.append(el('span', 'gap'), el('span', '', 'More'));
 
     const syncRow = el('button', 'syncrow');
