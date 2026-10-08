@@ -66,7 +66,16 @@
   [data-skin="blueprint"] .seg .thumb { background: rgba(255,255,255,.22); }
   [data-skin="blueprint"] .act, [data-skin="blueprint"] .chipbtn, [data-skin="blueprint"] .seg, [data-skin="blueprint"] .seg .thumb, [data-skin="blueprint"] .seg button { border-radius: 3px; }
   [data-skin="blueprint"] .stat .k, [data-skin="blueprint"] .date, [data-skin="blueprint"] .section-k b { font-family: ui-monospace, "SF Mono", Menlo, "DejaVu Sans Mono", monospace; letter-spacing: .04em; }
-  [data-skin="blueprint"] .clock { font-family: ui-monospace, "SF Mono", Menlo, "DejaVu Sans Mono", monospace; font-weight: 300; font-size: clamp(64px, 20vw, 88px); letter-spacing: -0.03em; line-height: 1.2; }
+  [data-skin="blueprint"] .clock { font-weight: 200; }
+
+  /* Rain: a quiet night window — slate blue, soft rain falling behind everything */
+  :root[data-skin="rain"] { --clock: #e6edf3; --bg: #1c2731; --card: rgba(16,23,30,.74); --chip: rgba(255,255,255,.08); --fg: #dde6ee; --muted: #8597a6; --line: rgba(255,255,255,.1); --accent: #a8c2d6; --on-accent: #16202a; --prosing: #c3b2e2; --working: #86c3c4; --cell0: #283642; color-scheme: dark; }
+  [data-skin="rain"] .card { border: 1px solid rgba(255,255,255,.07); }
+  [data-skin="rain"] .clock { font-weight: 100; }
+  [data-skin="rain"] .date { opacity: .7; }
+  .rain { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; display: none; }
+  [data-skin="rain"] .rain { display: block; }
+  [data-skin="rain"] .app { position: relative; z-index: 1; }
 
   /* Chocomint: cartoon — chunky brown outlines, sticker-style offset edges, chocolate chips on mint */
   :root[data-skin="chocomint"] { --ink: #4a2f22; --font-ui: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif; }
@@ -150,6 +159,8 @@
   .tool[aria-pressed="true"] { color: var(--fg); }
   .tool:active { transform: scale(.9); }
   .tool:disabled { opacity: .35; cursor: default; }
+  .tool .unsynced-x { display: none; }
+  .tool.unsynced .unsynced-x { display: inline; }
   .tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
   .card.leave { animation: sink .16s ease both; }
   @keyframes sink { to { opacity: 0; transform: translateY(8px); } }
@@ -360,7 +371,6 @@
   .mark .track { stroke: var(--line); stroke-width: 2.5; }
   .mark .ring { stroke-width: 3; stroke-dasharray: 100; stroke-dashoffset: 0; transform: rotate(-90deg); transform-origin: 50px 50px; }
   .mark .check { stroke-width: 3.5; stroke-dasharray: 100; stroke-dashoffset: 0; }
-  [data-skin="blueprint"] .mark { font-size: clamp(64px, 20vw, 88px); --lh: 1.2em; }
   .top.won .clock { display: none; }
   .top.won .mark { display: block; }
   .mark.play { animation: markpop .42s 1.02s cubic-bezier(.3,.7,.2,1) both; }
@@ -375,6 +385,7 @@
 </head>
 <body>
 
+<canvas class="rain" id="rain" aria-hidden="true"></canvas>
 <div class="app">
   <div class="top">
     <div class="date" id="date">Wednesday, October 7</div>
@@ -392,7 +403,7 @@
   <div class="card" id="card"></div>
 
   <div class="bottom">
-    <button class="tool" id="btn-sync" type="button" aria-label="GitHub Sync" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(12 12) scale(.9) translate(-12 -12)" stroke-width="1.78"><path d="M19.5 9.5A8 8 0 0 0 5.2 7.2"/><path d="M5 3.5v4h4"/><path d="M4.5 14.5a8 8 0 0 0 14.3 2.3"/><path d="M19 20.5v-4h-4"/></g></svg></button>
+    <button class="tool" id="btn-sync" type="button" aria-label="GitHub Sync" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(12 12) scale(.9) translate(-12 -12)" stroke-width="1.78"><path d="M19.5 9.5A8 8 0 0 0 5.2 7.2"/><path d="M5 3.5v4h4"/><path d="M4.5 14.5a8 8 0 0 0 14.3 2.3"/><path d="M19 20.5v-4h-4"/></g><path class="unsynced-x" d="M10.4 10.4l3.2 3.2M13.6 10.4l-3.2 3.2" stroke-width="1.6"/></svg></button>
     <span class="tools-right">
       <button class="tool" id="btn-cal" type="button" aria-label="History" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="8.5" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="8.5" cy="16.8" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="16.8" r=".6" fill="currentColor" stroke="none"/></svg></button>
       <button class="tool" id="btn-theme" type="button" aria-label="Theme" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5c.7 1.3 1.8 1.9 3 1.9s2.3-.6 3-1.9l5.5 2.4-1.9 4.2-2.3-.9v8.8H6.7v-8.8l-2.3.9-1.9-4.2L9 5z"/></svg></button>
@@ -402,7 +413,7 @@
 
 <script>
 (() => {
-  const K = { skin: 'fg.skin', minutes: 'fg.minutes', records: 'fg.records', sessions: 'fg.sessions', session: 'fg.session', cat: 'fg.category', token: 'fg.token', repo: 'fg.repo', synced: 'fg.syncedAt' };
+  const K = { skin: 'fg.skin', minutes: 'fg.minutes', records: 'fg.records', sessions: 'fg.sessions', session: 'fg.session', cat: 'fg.category', token: 'fg.token', repo: 'fg.repo', synced: 'fg.syncedAt', dirty: 'fg.dirty' };
   const load = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const drop = (k) => { try { localStorage.removeItem(k); } catch (e) {} };
@@ -418,10 +429,67 @@
     ['lemonnavy', 'Lemon Navy', '#fbf6d8', '#1d3a8a', '#fffdf0'],
     ['coralbutter', 'Coral Butter', '#fff4d1', '#ff6f61', '#fffcf0'],
     ['blueprint', 'Blueprint', '#1d4c9c', '#ffffff', '#3a66b0'],
+    ['rain',      'Rain',      '#1c2731', '#a8c2d6', '#283642'],
   ];
+
+  // ---------- rain (Rain skin only) ----------
+  const rain = (() => {
+    const cv = document.getElementById('rain'), cx = cv.getContext('2d');
+    let on = false, raf = 0, w = 0, h = 0, dpr = 1, last = 0, drops = [], beads = [];
+    const still = matchMedia('(prefers-reduced-motion: reduce)');
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const WIND = 0.12;                                   // slight slant
+    const drop = (y) => {
+      const near = Math.random() < 0.18;                 // a few closer, brighter streaks
+      return { x: rnd(-40, w + 40), y: y ?? rnd(-h, h), len: near ? rnd(22, 34) : rnd(10, 20),
+               v: near ? rnd(820, 1000) : rnd(480, 700), a: near ? rnd(.22, .32) : rnd(.08, .18), lw: near ? 1.2 : .8 };
+    };
+    const bead = () => ({ x: rnd(10, w - 10), y: rnd(0, h), r: rnd(1.2, 2.6), v: 0, hold: rnd(2, 9), a: rnd(.18, .3) });
+    function size() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      w = innerWidth; h = innerHeight;
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+      const n = Math.round(w * h / 2600);
+      drops = Array.from({ length: n }, () => drop());
+      beads = Array.from({ length: Math.round(w * h / 22000) }, bead);
+    }
+    function draw(dt) {
+      cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cx.clearRect(0, 0, w, h);
+      cx.lineCap = 'round';
+      for (const d of drops) {
+        d.y += d.v * dt; d.x += d.v * WIND * dt;
+        if (d.y - d.len > h) Object.assign(d, drop(rnd(-60, -10)));
+        cx.strokeStyle = `rgba(200,220,235,${d.a})`; cx.lineWidth = d.lw;
+        cx.beginPath(); cx.moveTo(d.x, d.y); cx.lineTo(d.x - d.len * WIND, d.y - d.len); cx.stroke();
+      }
+      // beads on the glass: sit still, then slowly slide down and leave
+      for (const b of beads) {
+        if (b.hold > 0) b.hold -= dt; else { b.v = Math.min(60, b.v + 30 * dt); b.y += b.v * dt; }
+        if (b.y - b.r > h) Object.assign(b, bead(), { y: rnd(0, h * .6) });
+        cx.fillStyle = `rgba(210,228,240,${b.a})`;
+        cx.beginPath(); cx.arc(b.x, b.y, b.r, 0, Math.PI * 2); cx.fill();
+        if (b.v > 0) { cx.fillStyle = `rgba(210,228,240,${b.a * .25})`; cx.fillRect(b.x - b.r * .35, b.y - 26, b.r * .7, 26); }
+      }
+    }
+    function loop(t) {
+      const dt = Math.min(.05, last ? (t - last) / 1000 : 0); last = t;
+      draw(dt);
+      raf = on && !still.matches ? requestAnimationFrame(loop) : 0;
+    }
+    function set(v) {
+      if (v === on) return;
+      on = v; cancelAnimationFrame(raf); raf = 0; last = 0;
+      if (on) { size(); raf = requestAnimationFrame(loop); } else cx.clearRect(0, 0, cv.width, cv.height);
+    }
+    addEventListener('resize', () => { if (on) { size(); if (!raf) draw(0); } });
+    document.addEventListener('visibilitychange', () => { if (on && !document.hidden && !raf) { last = 0; raf = requestAnimationFrame(loop); } });
+    return { set };
+  })();
   function applySkin(k) {
     const root = document.documentElement;
     if (!SKINS.some((x) => x[0] === k) || k === 'default') delete root.dataset.skin; else root.dataset.skin = k;
+    rain.set(root.dataset.skin === 'rain');
     requestAnimationFrame(() => {
       const bg = getComputedStyle(document.body).backgroundColor;
       document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bg));
@@ -492,6 +560,7 @@
     const cat = session.category || 'prosing';
     sessions.push({ id: `${session.start}-${Math.random().toString(36).slice(2, 8)}`, start: session.start, minutes: session.minutes, category: cat });
     save(K.sessions, sessions);
+    save(K.dirty, Date.now());           // a new record that GitHub doesn't have yet
     rebuild();
     sync();
     last = { minutes: session.minutes, category: cat };
@@ -517,6 +586,7 @@
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') leave();
     else if (phase === 'success' && celebrate && view === 'timer') render();
+    if (document.visibilityState === 'visible' && load(K.dirty, 0)) sync();
   });
   window.addEventListener('pagehide', leave);
 
@@ -677,6 +747,7 @@
       $(id).disabled = busy;
     }
     $('scrim').hidden = view !== 'cal';
+    paintSync();
     const today = new Date();
 
     // the top (date + timer) always shows the timer, whether or not history is open
@@ -956,6 +1027,7 @@
   async function sync() {
     if (!getToken() || syncState.busy || !navigator.onLine) return;
     syncState = { busy: true, error: '' };
+    const startedAt = Date.now();
     if (view === 'cal') render();
     try {
       for (let attempt = 0; attempt < 2; attempt++) {
@@ -976,7 +1048,11 @@
         const body = { message: `Update focus data ${new Date().toISOString()}`, content: b64encode(JSON.stringify({ version: 1, legacy, sessions }, null, 1)) };
         if (sha) body.sha = sha;
         const put = await api('data.json', { method: 'PUT', body: JSON.stringify(body) });
-        if (put.ok) { save(K.synced, Date.now()); syncState = { busy: false, error: '' }; break; }
+        if (put.ok) {
+          save(K.synced, Date.now()); syncState = { busy: false, error: '' };
+          if (load(K.dirty, 0) <= startedAt) save(K.dirty, 0);
+          break;
+        }
         if ((put.status === 409 || put.status === 422) && attempt === 0) continue; // changed elsewhere; fetch again and retry
         if (put.status === 403 || put.status === 404) throw new Error('the token can’t write to this repository');
         throw new Error(`GitHub error ${put.status}`);
@@ -985,8 +1061,12 @@
       syncState = { busy: false, error: (e && e.message) || 'network error' };
     }
     if (syncState.busy) syncState.busy = false;
+    paintSync();
     if (view === 'cal' || phase === 'idle') render();
+    if (!syncState.error && load(K.dirty, 0) > startedAt) sync();   // a session finished while this sync was running
   }
+  // the sync button shows an x while there are finished sessions GitHub doesn't have yet
+  function paintSync() { $('btn-sync').classList.toggle('unsynced', !!load(K.dirty, 0)); }
 
   function renderSync() {
     const card = $('card');
