@@ -68,8 +68,8 @@
   [data-skin="blueprint"] .stat .k, [data-skin="blueprint"] .date, [data-skin="blueprint"] .section-k b { font-family: ui-monospace, "SF Mono", Menlo, "DejaVu Sans Mono", monospace; letter-spacing: .04em; }
   /* Blueprint: LCD-style seven-segment digits — DSEG7 Classic Italic by keshikan, SIL Open Font License 1.1 (subset to 0-9 and :) */
   @font-face { font-family: "DSEG7"; src: url(data:font/woff2;base64,d09GMgABAAAAAAM4AAwAAAAACfAAAALqAAB1wgAAAAAAAAAAAAAAAAAAAAAAAAAABmAAPAgEEQgKi0iIEwE2AiQDNAscAAQgBYNGByAbTgcAngNu0zwiRo1S5M/Hu3nkJVJ0vhs80Dj8dzdSDXDcKtHQAIeyEOm0tSX/n3Tz7C9PbIgf7QhvB6ktwqFsda+LKY74+tu+u2byiCJr4jyDNLSICySQX5fF8385bW7Q3vcTDHGsYXNaOO+uZUXDojArjcYaGlL+unfsyA9H9KrsY1ug2U7iFC26NSKfMDQ2lqkH8UJYUCBpNUNQmJl/2o4RB67U/Q9UcjKccC8hnOsMJNAAltAED8HwhUCbW5BWPEMhYYR+9aquOwRwqwUI+lBPghEAewiiIMQFcgEBgKZpZ22SFi2atGjTpEObxqyjTcLC0dPRFu91eiTjxACtTpPkScLausw/Y0AvKE/TSJmEMl5DZRUbVmzIydhwVYGV1Gc8/edKCrvMaHQu09SuVIZlIykkb1APKiSvtdvVFhzXUcJVFsIqlDSpLr8ATHSdhTsWNgQ/dPjv6MzDwMzExsjW1NygzfTMHbWarP0oObci8MVj0SGyx0FrNx3p4LHo3OugNTxxvjq3JF0cbmac4hbMzeZITIRfJz5rAW3Yf0sZJhXgrIPpIPEoXpKZBg0zlloa3EfQuns824cq0mYfs5VkWNmNSnIiF1fyJeDryiOC/d1gu4B/d8SV/9H05T3bUp22C8U2K3N2OzHsPDwx054JPIiod+OU8dncX9JHWp/1z+/Bgon2N4Gs8QZw6XsJ4HncY0pNgfxrUtIlNWU/LaUQQVHvPY4RTfON0gLsDzRW9C2Ufp5KTXe8VujTzv6whARGwuABSCDO+an4EHN1VEITkx4wAPZAsLcHkqE5oKHePdDkGxzQYhv+r7V5x47FUEXJWMUxSNkCxKNipK6hpaSLpF3DWB3ErqdrnB8fqqmAiPEJQZjqxsb61AQEqnhy9ft8I1V8XRVjLFYRNg4KEIu2kpGRhiMuYyXtXLrfTtUgSxU8kmlkisjwSFaemBAZG7G4iqFUHNMgiBCflDyXXiNoqD9rt2HCNQA=) format("woff2"); font-display: block; }
-  [data-skin="blueprint"] .clock { font-family: "DSEG7", var(--font-clock); font-weight: 400; font-size: clamp(62px, 20vw, 84px); line-height: 1.25; letter-spacing: 0; }
-  [data-skin="blueprint"] .mark { font-size: clamp(62px, 20vw, 84px); --lh: 1.25em; width: 1.1em; height: 1.1em; }
+  [data-skin="blueprint"] .clock { font-family: "DSEG7", var(--font-clock); font-weight: 400; letter-spacing: 0; }
+  [data-skin="blueprint"] .top .dial .clock { font-size: calc(var(--ring) * .19); }
 
   /* Rain: a quiet night window — slate blue, soft rain falling behind everything */
   :root[data-skin="rain"] { --clock: #e6edf3; --bg: #1c2731; --card: rgba(16,23,30,.74); --chip: rgba(255,255,255,.08); --fg: #dde6ee; --muted: #8597a6; --line: rgba(255,255,255,.1); --accent: #a8c2d6; --on-accent: #16202a; --prosing: #c3b2e2; --working: #86c3c4; --cell0: #283642; color-scheme: dark; }
@@ -84,6 +84,7 @@
   :root[data-skin="chocomint"] { --ink: #4a2f22; --font-ui: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif; }
   [data-skin="chocomint"] body { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22168%22%20height%3D%22168%22%20viewBox%3D%220%200%20168%20168%22%3E%3Cg%20fill%3D%22%235a3826%22%20fill-opacity%3D%22.42%22%3E%3Cpath%20transform%3D%22translate%2816%2020%29%20rotate%280%29%20scale%281%29%22%20d%3D%22M-5%20-2%20Q-4%20-5.5%200%20-5%20L5%20-3%20Q6.5%200%204%203%20Q0%205.5%20-3.5%204%20Q-6.5%201%20-5%20-2Z%22/%3E%3Cpath%20transform%3D%22translate%2892%2010%29%20rotate%2840%29%20scale%280.8%29%22%20d%3D%22M-6%20-1.5%20Q-5%20-3.5%20-1%20-3%20L5.5%20-2.2%20Q7%200%205%202%20L-2%203%20Q-6.5%202.5%20-6%20-1.5Z%22/%3E%3Cpath%20transform%3D%22translate%28146%2058%29%20rotate%28-25%29%20scale%281.1%29%22%20d%3D%22M-3%20-3.5%20Q1%20-4.8%203.5%20-2.5%20Q4.5%201%202%203.5%20Q-1.5%204.5%20-3.8%201.5%20Q-4.6%20-1.5%20-3%20-3.5Z%22/%3E%3Cpath%20transform%3D%22translate%2854%2072%29%20rotate%2870%29%20scale%281%29%22%20d%3D%22M-6%20-1.5%20Q-5%20-3.5%20-1%20-3%20L5.5%20-2.2%20Q7%200%205%202%20L-2%203%20Q-6.5%202.5%20-6%20-1.5Z%22/%3E%3Cpath%20transform%3D%22translate%2812%20118%29%20rotate%2815%29%20scale%280.75%29%22%20d%3D%22M-3%20-3.5%20Q1%20-4.8%203.5%20-2.5%20Q4.5%201%202%203.5%20Q-1.5%204.5%20-3.8%201.5%20Q-4.6%20-1.5%20-3%20-3.5Z%22/%3E%3Cpath%20transform%3D%22translate%28104%20110%29%20rotate%28-50%29%20scale%280.9%29%22%20d%3D%22M-5%20-2%20Q-4%20-5.5%200%20-5%20L5%20-3%20Q6.5%200%204%203%20Q0%205.5%20-3.5%204%20Q-6.5%201%20-5%20-2Z%22/%3E%3Cpath%20transform%3D%22translate%28150%20150%29%20rotate%2830%29%20scale%280.7%29%22%20d%3D%22M-6%20-1.5%20Q-5%20-3.5%20-1%20-3%20L5.5%20-2.2%20Q7%200%205%202%20L-2%203%20Q-6.5%202.5%20-6%20-1.5Z%22/%3E%3Cpath%20transform%3D%22translate%2870%20150%29%20rotate%28-10%29%20scale%281%29%22%20d%3D%22M-3%20-3.5%20Q1%20-4.8%203.5%20-2.5%20Q4.5%201%202%203.5%20Q-1.5%204.5%20-3.8%201.5%20Q-4.6%20-1.5%20-3%20-3.5Z%22/%3E%3Cpath%20transform%3D%22translate%28124%2030%29%20rotate%28120%29%20scale%280.6%29%22%20d%3D%22M-3%20-3.5%20Q1%20-4.8%203.5%20-2.5%20Q4.5%201%202%203.5%20Q-1.5%204.5%20-3.8%201.5%20Q-4.6%20-1.5%20-3%20-3.5Z%22/%3E%3Cpath%20transform%3D%22translate%2836%2040%29%20rotate%28-70%29%20scale%280.55%29%22%20d%3D%22M-3%20-3.5%20Q1%20-4.8%203.5%20-2.5%20Q4.5%201%202%203.5%20Q-1.5%204.5%20-3.8%201.5%20Q-4.6%20-1.5%20-3%20-3.5Z%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 168px 168px; }
   [data-skin="chocomint"] .clock { font-weight: 600; letter-spacing: 0; color: var(--ink); }
+  [data-skin="chocomint"] .top .dial .clock { font-size: calc(var(--ring) * .205); }
   [data-skin="chocomint"] .date { font-family: var(--font-ui); font-weight: 600; opacity: 1; color: var(--ink); }
   [data-skin="chocomint"] .card { border: 2.5px solid var(--ink); border-radius: 24px; box-shadow: 0 5px 0 var(--ink); }
   [data-skin="chocomint"] .card-title, [data-skin="chocomint"] .stat .k, [data-skin="chocomint"] .section-k b { font-weight: 700; }
@@ -101,9 +102,9 @@
   [data-skin="chocomint"] .cell.sel { outline: 2px solid var(--ink); }
   [data-skin="chocomint"] .tool { color: var(--ink); }
   [data-skin="chocomint"] .tool svg, [data-skin="chocomint"] .tool svg * { stroke-width: 2.1; }
-  [data-skin="chocomint"] .mark .ring { stroke-width: 6.5; }
-  [data-skin="chocomint"] .mark .check { stroke-width: 7.5; }
-  [data-skin="chocomint"] .mark .track { stroke-width: 6.5; stroke: rgba(74,47,34,.15); }
+  [data-skin="chocomint"] .mark .ring { stroke-width: 3.6; }
+  [data-skin="chocomint"] .mark .check { stroke-width: 4.4; }
+  [data-skin="chocomint"] .mark .track { stroke-width: 3.6; stroke: rgba(74,47,34,.15); }
   [data-skin="chocomint"] .dot { box-shadow: 0 0 0 1.5px var(--ink); }
 
   html, body { height: 100%; touch-action: manipulation; }
@@ -173,7 +174,7 @@
   .dayhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
   .dayhead .d { font-size: 15px; font-weight: 500; }
   .dayhead .v { font-size: 15px; font-variant-numeric: tabular-nums; }
-  .sline { display: grid; grid-template-columns: 8px 3.2em 1fr auto; align-items: center; column-gap: 10px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .sline { display: grid; grid-template-columns: 8px 1fr auto; align-items: center; column-gap: 10px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .sline .dur { color: var(--fg); }
   .day .empty, .day .more { font-size: 13px; color: var(--muted); }
 
@@ -233,26 +234,43 @@
   .seg button[aria-pressed="true"] { color: var(--fg); }
 
   .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .durrow { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: center; }
+  .durrow .chips { display: flex; flex-direction: column; gap: 3px; }
+  .durrow .tag { width: 100%; justify-content: center; padding: 0 8px; height: 30px; font-variant-numeric: tabular-nums; }
+  .tag {
+    appearance: none; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+    height: 30px; padding: 0 13px 0 11px; border-radius: 15px;
+    border: 1px solid var(--line); background: transparent; color: var(--muted);
+    font: 400 14px/1 var(--font-ui);
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease, transform .14s ease;
+  }
+  .tag:active { transform: scale(.96); }
+  .tag[aria-pressed="true"] { color: #fff; border-color: transparent; }
+  .tag[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+  .tag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  [data-skin="blueprint"] .tag { border-radius: 3px; border-color: rgba(255,255,255,.4); }
+  [data-skin="chocomint"] .tag { border: 2px solid var(--ink); color: var(--ink); font-weight: 600; }
+  [data-skin="chocomint"] .tag[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: #fff; }
 
   /* wheel picker (hours / min), after the iOS Timer */
-  .picker { --row: 32px; position: relative; display: grid; grid-template-columns: 1fr 1fr; height: calc(var(--row) * 5); }
+  .picker { --row: 32px; position: relative; display: grid; grid-template-columns: 1fr 1fr; height: calc(var(--row) * 3); }
   .picker .band {
-    position: absolute; left: 0; right: 0; top: calc(var(--row) * 2); height: var(--row);
+    position: absolute; left: 0; right: 0; top: var(--row); height: var(--row);
     background: var(--chip); border-radius: 11px; pointer-events: none;
   }
   .picker .col { position: relative; min-width: 0; }
   .picker .unit {
-    position: absolute; left: 50%; top: calc(var(--row) * 2); height: var(--row); line-height: var(--row);
+    position: absolute; left: 50%; top: var(--row); height: var(--row); line-height: var(--row);
     padding-left: 7px; font-size: 15px; font-weight: 400; color: var(--fg); pointer-events: none; z-index: 2;
   }
   .wheel {
     position: relative; z-index: 1; width: 100%;
-    height: calc(var(--row) * 5); overflow-y: scroll; scroll-snap-type: y mandatory;
+    height: calc(var(--row) * 3); overflow-y: scroll; scroll-snap-type: y mandatory;
     scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y; cursor: grab;
     perspective: 220px;
   }
   .wheel::-webkit-scrollbar { display: none; }
-  .wheel .pad { height: calc(var(--row) * 2); }
+  .wheel .pad { height: var(--row); }
   .wheel .wi {
     height: var(--row); line-height: var(--row); scroll-snap-align: center;
     box-sizing: border-box; padding-right: 50%; text-align: right;
@@ -372,19 +390,26 @@
   .act.mini { height: 32px; border-radius: 11px; padding-inline: 16px; }
 
   /* success: the clock gives way to a ring that closes, then a check */
-  .mark { display: none; font-size: clamp(76px, 24vw, 104px); --lh: 1.02em; width: .8em; height: .8em; margin-block: calc((var(--lh) - .8em) / 2); overflow: visible; color: var(--accent); }
+  /* the dial: a ring that empties as the session runs, with the countdown inside */
+  .top { --ring: 240px; }
+  .dial { position: relative; width: var(--ring); height: var(--ring); margin-top: 12px; transition: width .38s cubic-bezier(.3,.7,.2,1), height .38s cubic-bezier(.3,.7,.2,1); }
+  .top .dial .clock { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(var(--ring) * .22); line-height: 1; transition: opacity .25s ease; }
+  .mark { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; color: var(--accent); }
   .mark.prosing { color: var(--prosing); }
   .mark.working { color: var(--working); }
+  .mark.dim { color: var(--muted); }
   .mark circle, .mark path { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
-  .mark .track { stroke: var(--line); stroke-width: 2.5; }
-  .mark .ring { stroke-width: 3; stroke-dasharray: 100; stroke-dashoffset: 0; transform: rotate(-90deg); transform-origin: 50px 50px; }
-  .mark .check { stroke-width: 3.5; stroke-dasharray: 100; stroke-dashoffset: 0; }
-  .top.won .clock { display: none; }
-  .top.won .mark { display: block; }
+  .mark .track { stroke: var(--line); stroke-width: 2.2; }
+  .mark .ring { stroke-width: 2.2; stroke-dasharray: 100 100; stroke-dashoffset: 0; transform: rotate(-90deg); transform-origin: 50px 50px; transition: stroke-dashoffset .3s linear, color .2s ease; }
+  .mark .check { stroke-width: 2.6; stroke-dasharray: 100; stroke-dashoffset: 0; }
+  .top:not(.won) .mark .check { display: none; }
+  .top.won .dial .clock { opacity: 0; }
+  .top.won .date { font-size: 27px; font-weight: 500; opacity: 1; }
+  [data-skin="chocomint"] .top.won .date { font-weight: 700; }
   .mark.play { animation: markpop .42s 1.02s cubic-bezier(.3,.7,.2,1) both; }
   .mark.play .ring { animation: ringdraw .8s .08s cubic-bezier(.45,0,.2,1) both; }
   .mark.play .check { animation: checkdraw .36s .78s cubic-bezier(.3,.6,.3,1) both; }
-  @keyframes ringdraw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+  @keyframes ringdraw { from { stroke-dashoffset: -100; } to { stroke-dashoffset: 0; } }
   @keyframes checkdraw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
   @keyframes markpop { 0% { transform: scale(1); } 40% { transform: scale(1.06); } 100% { transform: scale(1); } }
   @media (prefers-reduced-motion: reduce) { .mark.play, .mark.play .ring, .mark.play .check { animation: none; } }
@@ -397,12 +422,14 @@
 <div class="app">
   <div class="top">
     <div class="date" id="date">Wednesday, October 7</div>
-    <div class="clock" id="clock">25:00</div>
-    <svg class="mark" id="mark" viewBox="0 0 100 100" aria-hidden="true">
-      <circle class="track" cx="50" cy="50" r="44"/>
-      <circle class="ring" cx="50" cy="50" r="44" pathLength="100"/>
-      <path class="check" d="M34.5 51.5l11.5 11.5L69 39" pathLength="100"/>
-    </svg>
+    <div class="dial" id="dial">
+      <svg class="mark" id="mark" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="track" cx="50" cy="50" r="46"/>
+        <circle class="ring" id="ring" cx="50" cy="50" r="46" pathLength="100"/>
+        <path class="check" d="M34.5 51.5l11.5 11.5L69 39" pathLength="100"/>
+      </svg>
+      <div class="clock" id="clock">25:00</div>
+    </div>
   </div>
 
   <div class="middle"></div>
@@ -525,7 +552,7 @@
     }
   }
   let session = load(K.session, null);      // { start, end, minutes, category }
-  let phase = 'idle';                        // idle | picking | focusing | confirm | success | failed
+  let phase = 'idle';                        // idle | focusing | confirm | success | failed
   let view = 'timer';                        // timer | cal
   let filter = 'all';                        // all | prosing | working
   let last = { minutes, category };
@@ -578,7 +605,7 @@
     render();
   }
   function fail(text) {
-    if (session) last = { minutes: session.minutes, category: session.category || category };
+    if (session) last = { minutes: session.minutes, category: session.category || category, done: Math.min(1, Math.max(0, (Date.now() - session.start) / (session.end - session.start))) };
     session = null; drop(K.session);
     failText = text;
     phase = 'failed';
@@ -602,6 +629,7 @@
     if ((phase === 'focusing' || phase === 'confirm') && session) {
       const left = Math.max(0, Math.ceil((session.end - Date.now()) / 1000));
       setClock(left);
+      setRing((Date.now() - session.start) / (session.end - session.start));
       if (left === 0) complete();
     }
   }
@@ -713,6 +741,8 @@
     if (!h) return `${r} minute session`;
     return r ? `${h} h ${r} min session` : `${h} hour session`;
   };
+  // how much of the ring has gone: 0 = full ring, 1 = empty. The gap opens at the top and sweeps clockwise.
+  function setRing(done) { $('ring').style.strokeDashoffset = String(-Math.min(1, Math.max(0, done)) * 100); }
   function setClock(sec) {
     const ck = $('clock');
     ck.textContent = clock(sec);           // always minutes:seconds, e.g. 1.5 h → 90:00
@@ -722,19 +752,20 @@
   // ---------- render ----------
   let lastKey = '';
   const afterRender = () => requestAnimationFrame(placeTop);
-  // before a session: the date/clock block sits at the top, as before.
-  // while focusing: it is centred in the space between the window's top edge and the card's top edge.
+  // the date + dial block is centred between the window's top edge and the card's top edge,
+  // and the ring is as large as fits: about a third of the screen, smaller when a tall card needs the room.
   function placeTop() {
     const app = document.querySelector('.app'), top = document.querySelector('.top'), card = $('card');
     if (!app || !top || !card) return;
     const pad = parseFloat(getComputedStyle(app).paddingTop) || 0;
-    let y = pad;
-    if (view !== 'cal' && (phase === 'focusing' || phase === 'confirm' || phase === 'success')) {
-      const ar = app.getBoundingClientRect();
-      const cardTop = card.getBoundingClientRect().top - ar.top;
-      y = Math.max(pad, (cardTop - top.offsetHeight) / 2);
-    }
-    top.style.top = `${Math.round(y)}px`;
+    const ar = app.getBoundingClientRect();
+    const cardTop = card.getBoundingClientRect().top - ar.top;
+    const dateH = $('date').offsetHeight, gap = 12;
+    const room = cardTop - pad - 14 - dateH - gap;
+    const ring = Math.round(Math.max(110, Math.min(innerHeight * .34, ar.width * .72, room)));
+    top.style.setProperty('--ring', `${ring}px`);
+    const h = dateH + gap + ring;
+    top.style.top = `${Math.round(Math.max(pad, pad + (cardTop - pad - h) / 2 - 4))}px`;
   }
   window.addEventListener('resize', placeTop);
 
@@ -760,23 +791,28 @@
 
     // the top (date + timer) always shows the timer, whether or not history is open
     cancelAnimationFrame(countRaf);
-    dt.textContent = `Today ${fmtDur(rec(today).s)}`;
     const won = phase === 'success' && view === 'timer';
+    const bang = won ? '!' : '';
+    dt.textContent = `Today ${fmtDur(rec(today).s)}${bang}`;
     const top = document.querySelector('.top'), mark = $('mark');
     top.classList.toggle('won', won);
-    mark.classList.remove('play', 'prosing', 'working');
+    mark.classList.remove('play', 'prosing', 'working', 'dim');
+    const busyNow = (phase === 'focusing' || phase === 'confirm') && session;
+    mark.classList.add(busyNow ? (session.category || category) : (phase === 'idle' ? category : last.category));
+    if (phase === 'failed') mark.classList.add('dim');
+    if (phase === 'idle' || won) setRing(0);
+    else if (phase === 'failed') setRing(last.done || 0);
     if (won) {
-      mark.classList.add(last.category);
       if (celebrate && !document.hidden) {
         celebrate = false;
         void mark.getBoundingClientRect();
         mark.classList.add('play');
         // today's total counts up by the minutes just earned, as the ring closes
         const to = rec(today).s, from = Math.max(0, to - last.minutes * 60), t0 = performance.now() + 250;
-        dt.textContent = `Today ${fmtDur(from)}`;
+        dt.textContent = `Today ${fmtDur(from)}!`;
         const step = (t) => {
           const p = Math.min(1, Math.max(0, (t - t0) / 900));
-          dt.textContent = `Today ${fmtDur(from + (to - from) * (1 - Math.pow(1 - p, 3)))}`;
+          dt.textContent = `Today ${fmtDur(from + (to - from) * (1 - Math.pow(1 - p, 3)))}!`;
           if (p < 1) countRaf = requestAnimationFrame(step);
         };
         countRaf = requestAnimationFrame(step);
@@ -784,7 +820,7 @@
     }
     ck.classList.remove('small', 'long');
     ck.classList.toggle('dim', phase === 'success' || phase === 'failed');
-    if (phase === 'idle' || phase === 'picking') setClock(minutes * 60);
+    if (phase === 'idle') setClock(minutes * 60);
     else if (phase === 'focusing' || phase === 'confirm') tick();
     else setClock(last.minutes * 60);
 
@@ -792,32 +828,21 @@
     afterRender();
 
     if (phase === 'idle') {
+      // one card: category, duration presets + wheels, Start
       setClock(minutes * 60);
-      card.append(
-        head(fmtLen(minutes), 'Leaving the page or locking the screen ends the session.'),
-        segmented('category', [['prosing', 'Prosing', true], ['working', 'Working', true]], category,
-          (k) => { category = k; save(K.cat, k); render(); }),
-        actions(act('Duration', '', () => { phase = 'picking'; render(); }),
-                act('Start', 'primary', start)));
-    }
-
-    if (phase === 'picking') {
-      setClock(minutes * 60);
-      const hd = head(fmtLen(minutes), 'Pick a preset, or scroll to set your own.');
       const chips = el('div', 'chips');
       const chipEls = [];
       let hWheel, mWheel;
-      const sync = () => {
+      const changed = () => {
         save(K.minutes, minutes);
         setClock(minutes * 60);
-        hd.querySelector('.card-title').lastChild.textContent = fmtLen(minutes);
         chipEls.forEach(([p, c]) => c.setAttribute('aria-pressed', String(p === minutes)));
       };
       for (const [p, label] of PRESETS) {
-        const c = el('button', 'chipbtn', label);
+        const c = el('button', 'tag preset', label);
         c.type = 'button';
         c.addEventListener('click', () => {
-          minutes = p; sync();
+          minutes = p; changed();
           hWheel.set(Math.floor(p / 60), true); mWheel.set(p % 60, true);
         });
         chipEls.push([p, c]);
@@ -825,16 +850,22 @@
       }
       minutes = Math.min(3 * 60 + 55, Math.max(5, Math.round(minutes / 5) * 5));   // wheels move in 5-minute steps, up to 3 h 55
       let hh = Math.floor(minutes / 60), mm = minutes % 60;
-      const update = () => { minutes = Math.max(5, hh * 60 + mm); sync(); };
+      const update = () => { minutes = Math.max(5, hh * 60 + mm); changed(); };
       hWheel = wheel([0, 1, 2, 3], hh, 'Hours', (v) => { hh = v; update(); });
       mWheel = wheel(Array.from({ length: 12 }, (_, i) => i * 5), mm, 'Minutes', (v) => { mm = v; update(); });
       const picker = el('div', 'picker');
       const colH = el('div', 'col'); colH.append(hWheel, el('span', 'unit', 'hours'));
       const colM = el('div', 'col'); colM.append(mWheel, el('span', 'unit', 'min'));
       picker.append(el('div', 'band'), colH, colM);
-      sync();
-      card.append(hd, chips, picker,
-        actions(act('Done', 'primary', () => { phase = 'idle'; render(); })));
+      changed();
+      // duration: wheels on the left two thirds, the three presets stacked as tags on the right
+      const dur = el('div', 'durrow');
+      dur.append(picker, chips);
+      card.append(
+        segmented('category', [['prosing', 'Prosing', true], ['working', 'Working', true]], category,
+          (k) => { category = k; save(K.cat, k); mark.classList.remove('prosing', 'working'); mark.classList.add(k); render(); }),
+        dur,
+        actions(act('Start', 'primary', start)));
     }
 
     if (phase === 'focusing') {
@@ -899,20 +930,22 @@
     const st = stat(d, filter);
     const isToday = dayKey(d) === dayKey(today);
 
+    // the chosen day, one line per category: "Prosing 2h"
     const day = el('div', 'day');
-    const list = daySessions(d);
-    const shown = list.slice(-4);
-    if (list.length > shown.length) day.append(el('div', 'more', `+ ${list.length - shown.length} earlier`));
-    for (const x of shown) {
+    const r = records[dayKey(d)] || { s: 0, c: {} };
+    let named = 0;
+    for (const cat of ['prosing', 'working']) {
+      if (filter !== 'all' && filter !== cat) continue;
+      const v = ((r.c || {})[cat] || { s: 0 }).s;
+      named += v;
+      if (!v) continue;
       const line = el('div', 'sline');
-      line.append(dot(x.category), el('span', 't', hhmm(x.start)), el('span', 'cat', CATS[x.category] || ''), el('span', 'dur', fmtDur(x.minutes * 60)));
+      line.append(dot(cat), el('span', 'cat', CATS[cat]), el('span', 'dur', fmtDur(v)));
       day.append(line);
     }
-    const sessSec = list.reduce((a, x) => a + x.minutes * 60, 0);
-    const older = st.s - sessSec;              // time saved before per-session records existed
-    if (older > 0) {
+    if (filter === 'all' && r.s - named > 0) {   // old totals saved before categories existed
       const line = el('div', 'sline');
-      line.append(el('span'), el('span', 't', '—'), el('span', 'cat', 'Earlier'), el('span', 'dur', fmtDur(older)));
+      line.append(el('span'), el('span', 'cat', 'Other'), el('span', 'dur', fmtDur(r.s - named)));
       day.append(line);
     }
 
@@ -1070,7 +1103,7 @@
     }
     if (syncState.busy) syncState.busy = false;
     paintSync();
-    if (view === 'cal' || phase === 'idle') render();
+    if (view === 'cal') render(); else $('date').textContent = `Today ${fmtDur(rec(new Date()).s)}${phase === 'success' ? '!' : ''}`;
     if (!syncState.error && load(K.dirty, 0) > startedAt) sync();   // a session finished while this sync was running
   }
   // the sync button shows an x while there are finished sessions GitHub doesn't have yet
@@ -1163,7 +1196,7 @@
   }
   render();
   sync();
-  setInterval(() => { $('date').textContent = `Today ${fmtDur(rec(new Date()).s)}`; }, 60000);
+  setInterval(() => { $('date').textContent = `Today ${fmtDur(rec(new Date()).s)}${phase === 'success' && view === 'timer' ? '!' : ''}`; }, 60000);
 })();
 </script>
 
