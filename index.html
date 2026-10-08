@@ -66,7 +66,10 @@
   [data-skin="blueprint"] .seg .thumb { background: rgba(255,255,255,.22); }
   [data-skin="blueprint"] .act, [data-skin="blueprint"] .chipbtn, [data-skin="blueprint"] .seg, [data-skin="blueprint"] .seg .thumb, [data-skin="blueprint"] .seg button { border-radius: 3px; }
   [data-skin="blueprint"] .stat .k, [data-skin="blueprint"] .date, [data-skin="blueprint"] .section-k b { font-family: ui-monospace, "SF Mono", Menlo, "DejaVu Sans Mono", monospace; letter-spacing: .04em; }
-  [data-skin="blueprint"] .clock { font-weight: 200; }
+  /* Blueprint: LCD-style seven-segment digits — DSEG7 Classic Italic by keshikan, SIL Open Font License 1.1 (subset to 0-9 and :) */
+  @font-face { font-family: "DSEG7"; src: url(data:font/woff2;base64,d09GMgABAAAAAAM4AAwAAAAACfAAAALqAAB1wgAAAAAAAAAAAAAAAAAAAAAAAAAABmAAPAgEEQgKi0iIEwE2AiQDNAscAAQgBYNGByAbTgcAngNu0zwiRo1S5M/Hu3nkJVJ0vhs80Dj8dzdSDXDcKtHQAIeyEOm0tSX/n3Tz7C9PbIgf7QhvB6ktwqFsda+LKY74+tu+u2byiCJr4jyDNLSICySQX5fF8385bW7Q3vcTDHGsYXNaOO+uZUXDojArjcYaGlL+unfsyA9H9KrsY1ug2U7iFC26NSKfMDQ2lqkH8UJYUCBpNUNQmJl/2o4RB67U/Q9UcjKccC8hnOsMJNAAltAED8HwhUCbW5BWPEMhYYR+9aquOwRwqwUI+lBPghEAewiiIMQFcgEBgKZpZ22SFi2atGjTpEObxqyjTcLC0dPRFu91eiTjxACtTpPkScLausw/Y0AvKE/TSJmEMl5DZRUbVmzIydhwVYGV1Gc8/edKCrvMaHQu09SuVIZlIykkb1APKiSvtdvVFhzXUcJVFsIqlDSpLr8ATHSdhTsWNgQ/dPjv6MzDwMzExsjW1NygzfTMHbWarP0oObci8MVj0SGyx0FrNx3p4LHo3OugNTxxvjq3JF0cbmac4hbMzeZITIRfJz5rAW3Yf0sZJhXgrIPpIPEoXpKZBg0zlloa3EfQuns824cq0mYfs5VkWNmNSnIiF1fyJeDryiOC/d1gu4B/d8SV/9H05T3bUp22C8U2K3N2OzHsPDwx054JPIiod+OU8dncX9JHWp/1z+/Bgon2N4Gs8QZw6XsJ4HncY0pNgfxrUtIlNWU/LaUQQVHvPY4RTfON0gLsDzRW9C2Ufp5KTXe8VujTzv6whARGwuABSCDO+an4EHN1VEITkx4wAPZAsLcHkqE5oKHePdDkGxzQYhv+r7V5x47FUEXJWMUxSNkCxKNipK6hpaSLpF3DWB3ErqdrnB8fqqmAiPEJQZjqxsb61AQEqnhy9ft8I1V8XRVjLFYRNg4KEIu2kpGRhiMuYyXtXLrfTtUgSxU8kmlkisjwSFaemBAZG7G4iqFUHNMgiBCflDyXXiNoqD9rt2HCNQA=) format("woff2"); font-display: block; }
+  [data-skin="blueprint"] .clock { font-family: "DSEG7", var(--font-clock); font-weight: 400; font-size: clamp(62px, 20vw, 84px); line-height: 1.25; letter-spacing: 0; }
+  [data-skin="blueprint"] .mark { font-size: clamp(62px, 20vw, 84px); --lh: 1.25em; width: 1.1em; height: 1.1em; }
 
   /* Rain: a quiet night window — slate blue, soft rain falling behind everything */
   :root[data-skin="rain"] { --clock: #e6edf3; --bg: #1c2731; --card: rgba(16,23,30,.74); --chip: rgba(255,255,255,.08); --fg: #dde6ee; --muted: #8597a6; --line: rgba(255,255,255,.1); --accent: #a8c2d6; --on-accent: #16202a; --prosing: #c3b2e2; --working: #86c3c4; --cell0: #283642; color-scheme: dark; }
@@ -340,20 +343,25 @@
     font: 300 15px/1 var(--font-ui);
   }
   .field:focus { outline: 2px solid var(--accent); outline-offset: 0; }
-  .skins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .skins { display: grid; grid-template-columns: repeat(5, 50px); justify-content: space-between; gap: 9px 0; padding-inline: 2px; }
+  .skin { min-width: 0; overflow: visible; letter-spacing: -0.01em; }
   .skin {
     appearance: none; border: 0; padding: 0; background: none; cursor: pointer;
-    display: flex; flex-direction: column; align-items: stretch; gap: 5px;
-    font: 400 12px/1.2 var(--font-ui); color: var(--muted); text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    font: 400 11px/1.2 var(--font-ui); color: var(--muted); text-align: center; white-space: nowrap;
     transition: transform .14s ease;
   }
   .skin:active { transform: scale(.96); }
   .skin .sw {
-    height: 44px; border-radius: 11px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
-    display: flex; align-items: flex-end; justify-content: space-between; padding: 7px 8px;
+    width: 50px; height: 50px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+    display: flex; align-items: flex-end; justify-content: space-between; padding: 6px;
   }
-  .skin .sw i { display: block; width: 18px; height: 6px; border-radius: 3px; }
-  .skin .sw b { display: block; width: 26px; height: 14px; border-radius: 5px; }
+  .skin .sw i { display: block; width: 11px; height: 4px; border-radius: 2px; }
+  .skin .sw b { display: block; width: 17px; height: 9px; border-radius: 3.5px; }
+  /* theme swatches hint at their look */
+  .skin .sw.t-blueprint { background-image: linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.16) 1px, transparent 1px) !important; background-size: 7px 7px !important; }
+  .skin .sw.t-chocomint { box-shadow: inset 0 0 0 1.5px #4a2f22; background-image: radial-gradient(circle, rgba(90,56,38,.5) 1.1px, transparent 1.6px), radial-gradient(circle, rgba(90,56,38,.5) 0.9px, transparent 1.4px) !important; background-size: 13px 13px, 13px 13px !important; background-position: 2px 3px, 8px 9px !important; }
+  .skin .sw.t-rain { background-image: repeating-linear-gradient(100deg, transparent 0 5px, rgba(200,220,235,.28) 5px 6px) !important; }
   .skin[aria-pressed="true"] { color: var(--fg); }
   .skin[aria-pressed="true"] .sw { box-shadow: inset 0 0 0 1px rgba(0,0,0,.08), 0 0 0 2px var(--card), 0 0 0 3.5px var(--fg); }
   .skin:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
@@ -426,8 +434,8 @@
     ['claude',    'Claude',    '#f5f0e8', '#d97757', '#fffdf9'],
     ['obsidian',  'Obsidian',  '#ffffff', '#7f6df2', '#f6f6f6'],
     ['chocomint', 'Chocomint', '#cfe8da', '#6b4532', '#f2faf5'],
-    ['lemonnavy', 'Lemon Navy', '#fbf6d8', '#1d3a8a', '#fffdf0'],
-    ['coralbutter', 'Coral Butter', '#fff4d1', '#ff6f61', '#fffcf0'],
+    ['lemonnavy', 'Lemon', '#fbf6d8', '#1d3a8a', '#fffdf0'],
+    ['coralbutter', 'Coral', '#fff4d1', '#ff6f61', '#fffcf0'],
     ['blueprint', 'Blueprint', '#1d4c9c', '#ffffff', '#3a66b0'],
     ['rain',      'Rain',      '#1c2731', '#a8c2d6', '#283642'],
   ];
@@ -1094,15 +1102,17 @@
     syncHead.append(el('b', '', getToken() ? 'Reconnect' : 'Connect to GitHub'));
     card.append(status, el('div', 'rule'), syncHead, lab('Repository', repoIn), tokenRow);
   }
+  const THEMES = ['chocomint', 'blueprint', 'rain'];   // skins that change more than colour
   function renderTheme() {
     const card = $('card');
-    const skins = el('div', 'skins');
     let cur = load(K.skin, 'default'); if (!SKINS.some((x) => x[0] === cur)) cur = 'default';
-    for (const [k, name, bg, accent, card2] of SKINS) {
+    const grid = (keys) => {
+    const skins = el('div', 'skins');
+    for (const [k, name, bg, accent, card2] of SKINS.filter((x) => keys.includes(x[0]))) {
       const b = el('button', 'skin');
       b.type = 'button';
       b.setAttribute('aria-pressed', String(k === cur));
-      const sw = el('span', 'sw'); sw.style.background = bg;
+      const sw = el('span', THEMES.includes(k) ? `sw t-${k}` : 'sw'); sw.style.backgroundColor = bg;
       const bar = el('i'); bar.style.background = card2 === bg ? '#e5e5e5' : card2;
       const pill = el('b'); pill.style.background = accent;
       sw.append(bar, pill);
@@ -1110,9 +1120,12 @@
       b.addEventListener('click', () => { save(K.skin, k); applySkin(k); render(); });
       skins.append(b);
     }
-    const themeHead = el('div', 'section-k');
-    themeHead.append(el('b', '', 'Theme'));
-    card.append(themeHead, skins);
+    return skins;
+    };
+    const sec = (t) => { const h = el('div', 'section-k'); h.append(el('b', '', t)); return h; };
+    card.append(sec('Colors'), grid(SKINS.map((x) => x[0]).filter((k) => !THEMES.includes(k))),
+                el('div', 'rule'),
+                sec('Themes'), grid(THEMES));
   }
   window.addEventListener('online', () => sync());
 
