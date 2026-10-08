@@ -53,11 +53,11 @@
   }
 
   /* skins (chosen in Settings). Default follows the system's light/dark; the others are fixed light themes */
-  :root[data-skin="chocomint"] { --clock: #6b4532; --bg: #cfe8da; --card: #f2faf5; --chip: #bddccb; --fg: #3a291f; --muted: #6c7f74; --line: #b3d3c1; --accent: #6b4532; --on-accent: #ffffff; --prosing: #6b4532; --working: #2f7a62; --cell0: #c2dfcf; color-scheme: light; }
+  :root[data-skin="chocomint"] { --clock: #6b4532; --bg: #cfe8da; --card: #f2faf5; --chip: #bddccb; --fg: #3a291f; --muted: #6c7f74; --line: #b3d3c1; --accent: #6b4532; --on-accent: #ffffff; --prosing: #6b4532; --working: #2c7671; --cell0: #c2dfcf; color-scheme: light; }
   :root[data-skin="claude"] { --bg: #f5f0e8; --card: #fffdf9; --chip: #ece5da; --fg: #2f2a24; --muted: #8c8478; --line: #e3dbcf; --accent: #d97757; --on-accent: #ffffff; --prosing: #d97757; --working: #6b5a4a; --cell0: #e9e2d6; color-scheme: light; }
-  :root[data-skin="lemonnavy"] { --clock: #1d3a8a; --bg: #fbf6d8; --card: #fffdf0; --chip: #f2ebc2; --fg: #1d2a4a; --muted: #7f8193; --line: #ece3b6; --accent: #1d3a8a; --on-accent: #ffffff; --prosing: #d94f30; --working: #1d3a8a; --cell0: #efe7bd; color-scheme: light; }
-  :root[data-skin="obsidian"] { --clock: #222222; --bg: #ffffff; --card: #f6f6f6; --chip: #ebebeb; --fg: #222222; --muted: #8a8a8a; --line: #e3e3e3; --accent: #7f6df2; --on-accent: #ffffff; --prosing: #7f6df2; --working: #2e9e9b; --cell0: #ececec; color-scheme: light; }
-  :root[data-skin="coralbutter"] { --clock: #ff6f61; --bg: #fff4d1; --card: #fffcf0; --chip: #f6eabd; --fg: #2d2618; --muted: #968c74; --line: #efe2b4; --accent: #ff6f61; --on-accent: #ffffff; --prosing: #ff6f61; --working: #2f5d8a; --cell0: #f4e8bd; color-scheme: light; }
+  :root[data-skin="lemonnavy"] { --clock: #1d3a8a; --bg: #fbf6d8; --card: #fffdf0; --chip: #f2ebc2; --fg: #1d2a4a; --muted: #7f8193; --line: #ece3b6; --accent: #1d3a8a; --on-accent: #ffffff; --prosing: #7fa61a; --working: #1d3a8a; --cell0: #efe7bd; color-scheme: light; }
+  :root[data-skin="obsidian"] { --clock: #222222; --bg: #ffffff; --card: #f6f6f6; --chip: #ebebeb; --fg: #222222; --muted: #8a8a8a; --line: #e3e3e3; --accent: #7f6df2; --on-accent: #ffffff; --prosing: #7f6df2; --working: #45379e; --cell0: #ececec; color-scheme: light; }
+  :root[data-skin="coralbutter"] { --clock: #ff6f61; --bg: #fff4d1; --card: #fffcf0; --chip: #f6eabd; --fg: #2d2618; --muted: #968c74; --line: #efe2b4; --accent: #ff6f61; --on-accent: #ffffff; --prosing: #ff6f61; --working: #a63d55; --cell0: #f4e8bd; color-scheme: light; }
   :root[data-skin="blueprint"] { --clock: #ffffff; --bg: #1d4c9c; --card: transparent; --chip: rgba(255,255,255,.1); --fg: #eaf2ff; --muted: #a9c1ea; --line: rgba(255,255,255,.3); --accent: #ffffff; --on-accent: #1d4c9c; --prosing: #ffd166; --working: #9fe3ff; --cell0: #2a5aab; color-scheme: dark; }
   /* Blueprint: drafting grid, outlined glass cards */
   [data-skin="blueprint"] body { background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px); background-size: 22px 22px; }
@@ -136,7 +136,7 @@
     text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px;
     transition: top .38s cubic-bezier(.3,.7,.2,1);
   }
-  .date { font-size: 19px; font-weight: 400; opacity: .85; }
+  .date { font-size: 19px; font-weight: 400; opacity: .85; height: 34px; display: flex; align-items: flex-end; justify-content: center; line-height: 1.2; }  /* fixed height so a bigger total never moves the ring */
   .clock {
     color: var(--clock, var(--fg));
     font-family: var(--font-clock);
@@ -752,20 +752,28 @@
   // ---------- render ----------
   let lastKey = '';
   const afterRender = () => requestAnimationFrame(placeTop);
-  // the date + dial block is centred between the window's top edge and the card's top edge,
-  // and the ring is as large as fits: about a third of the screen, smaller when a tall card needs the room.
+  // The date + dial block is laid out once, on the start screen: centred between the window's top edge and
+  // the start card, the ring about a third of the screen. Every other screen keeps that same size and spot.
+  let dialPos = load('fg.dial', null);       // { ring, top, w, h } measured on the start screen
   function placeTop() {
     const app = document.querySelector('.app'), top = document.querySelector('.top'), card = $('card');
     if (!app || !top || !card) return;
-    const pad = parseFloat(getComputedStyle(app).paddingTop) || 0;
-    const ar = app.getBoundingClientRect();
-    const cardTop = card.getBoundingClientRect().top - ar.top;
-    const dateH = $('date').offsetHeight, gap = 12;
-    const room = cardTop - pad - 14 - dateH - gap;
-    const ring = Math.round(Math.max(110, Math.min(innerHeight * .34, ar.width * .72, room)));
-    top.style.setProperty('--ring', `${ring}px`);
-    const h = dateH + gap + ring;
-    top.style.top = `${Math.round(Math.max(pad, pad + (cardTop - pad - h) / 2 - 4))}px`;
+    const sameScreen = dialPos && dialPos.w === innerWidth && dialPos.h === innerHeight;
+    if (view === 'timer' && phase === 'idle') {
+      const pad = parseFloat(getComputedStyle(app).paddingTop) || 0;
+      const ar = app.getBoundingClientRect();
+      const cardTop = card.getBoundingClientRect().top - ar.top;
+      const dateH = $('date').offsetHeight, gap = 12;
+      const ring = Math.round(Math.max(110, Math.min(innerHeight * .34, ar.width * .72, cardTop - pad - 14 - dateH - gap)));
+      const y = Math.round(Math.max(pad, pad + (cardTop - pad - dateH - gap - ring) / 2 - 4));
+      dialPos = { ring, top: y, w: innerWidth, h: innerHeight };
+      save('fg.dial', dialPos);
+    } else if (!sameScreen) {
+      const ar = app.getBoundingClientRect();
+      dialPos = { ring: Math.round(Math.min(innerHeight * .3, ar.width * .7)), top: 28, w: innerWidth, h: innerHeight };
+    }
+    top.style.setProperty('--ring', `${dialPos.ring}px`);
+    top.style.top = `${dialPos.top}px`;
   }
   window.addEventListener('resize', placeTop);
 
