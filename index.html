@@ -97,7 +97,8 @@
   .scrim { position: fixed; inset: 0; z-index: 1; }
   .card, .bottom { position: relative; z-index: 2; }
   .round.ghost { visibility: hidden; }
-  .app .bottom { justify-content: flex-end; gap: 4px; padding-right: 2px; }
+  .app .bottom { justify-content: space-between; padding-inline: 2px; }
+  .tools-right { display: flex; gap: 4px; }
   .tool {
     appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
     width: 44px; height: 44px; display: grid; place-items: center;
@@ -278,9 +279,10 @@
   .fieldwrap { display: flex; flex-direction: column; gap: 5px; padding-inline: 2px; }
   .fieldwrap .k { font-size: 12px; color: var(--muted); }
   .field {
+    --field: rgba(118, 118, 128, .12);
     -webkit-user-select: text; user-select: text; min-width: 0; box-sizing: border-box;
     height: 32px; border-radius: 11px; border: 0; padding-inline: 12px;
-    background: var(--chip); color: var(--fg);
+    background: var(--field); color: var(--fg);
     font: 300 15px/1 var(--font-ui);
   }
   .field:focus { outline: 2px solid var(--accent); outline-offset: 0; }
@@ -303,6 +305,7 @@
   .skin:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
   .section-k { font-size: 12px; color: var(--muted); padding-inline: 2px; }
   .section-k b { font-weight: 500; color: var(--fg); margin-right: 6px; }
+  .sync-status { font-size: 16px; font-weight: 400; color: var(--fg); padding-inline: 2px; font-variant-numeric: tabular-nums; }
   .fieldrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
   .act.mini { height: 32px; border-radius: 11px; padding-inline: 16px; }
 </style>
@@ -321,9 +324,11 @@
   <div class="card" id="card"></div>
 
   <div class="bottom">
-    <button class="tool" id="btn-cal" type="button" aria-label="History" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="8.5" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="8.5" cy="16.8" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="16.8" r=".6" fill="currentColor" stroke="none"/></svg></button>
-    <button class="tool" id="btn-theme" type="button" aria-label="Theme" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5c.7 1.3 1.8 1.9 3 1.9s2.3-.6 3-1.9l5.5 2.4-1.9 4.2-2.3-.9v8.8H6.7v-8.8l-2.3.9-1.9-4.2L9 5z"/></svg></button>
     <button class="tool" id="btn-sync" type="button" aria-label="GitHub Sync" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(12 12) scale(.9) translate(-12 -12)" stroke-width="1.78"><path d="M19.5 9.5A8 8 0 0 0 5.2 7.2"/><path d="M5 3.5v4h4"/><path d="M4.5 14.5a8 8 0 0 0 14.3 2.3"/><path d="M19 20.5v-4h-4"/></g></svg></button>
+    <span class="tools-right">
+      <button class="tool" id="btn-cal" type="button" aria-label="History" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="8.5" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.3" r=".6" fill="currentColor" stroke="none"/><circle cx="8.5" cy="16.8" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="16.8" r=".6" fill="currentColor" stroke="none"/></svg></button>
+      <button class="tool" id="btn-theme" type="button" aria-label="Theme" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5c.7 1.3 1.8 1.9 3 1.9s2.3-.6 3-1.9l5.5 2.4-1.9 4.2-2.3-.9v8.8H6.7v-8.8l-2.3.9-1.9-4.2L9 5z"/></svg></button>
+    </span>
   </div>
 </div>
 
@@ -872,7 +877,7 @@
 
     const tokenIn = el('input', 'field');
     tokenIn.id = 'sync-token'; tokenIn.type = 'password'; tokenIn.autocomplete = 'off';
-    tokenIn.placeholder = getToken() ? 'Token saved · paste a new one to replace' : 'Paste your fine-grained token';
+    tokenIn.placeholder = getToken() ? 'Saved · paste to replace' : 'Paste your fine-grained token';
     const repoIn = el('input', 'field');
     repoIn.id = 'sync-repo'; repoIn.type = 'text'; repoIn.autocapitalize = 'off'; repoIn.spellcheck = false;
     repoIn.value = getRepo();
@@ -888,9 +893,10 @@
     });
     const tokenRow = el('div', 'fieldrow');
     tokenRow.append(lab('Token', tokenIn), syncBtn);
+    const status = el('div', 'sync-status', syncLabel());
     const syncHead = el('div', 'section-k');
-    syncHead.append(el('b', '', 'GitHub Sync'), document.createTextNode(getToken() ? syncLabel() : 'Off'));
-    card.append(syncHead, lab('Repository', repoIn), tokenRow);
+    syncHead.append(el('b', '', getToken() ? 'Reconnect' : 'Connect to GitHub'));
+    card.append(status, el('div', 'rule'), syncHead, lab('Repository', repoIn), tokenRow);
   }
   function renderTheme() {
     const card = $('card');
