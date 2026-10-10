@@ -1050,8 +1050,10 @@
     top.style.top = `${dialPos.top}px`;
     const bz = $('bunny');
     if (bz) {
-      bz.style.top = `${dialPos.top + dateH + 2 + gap + dialPos.ring + 6}px`;
-      bz.style.height = `${dialPos.bunny || 0}px`;
+      // extra room above the bunny so its ears stay in view when it hops (it may overlap the dial's lower edge)
+      const head = Math.round((dialPos.bunny || 0) * 0.22);
+      bz.style.top = `${dialPos.top + dateH + 2 + gap + dialPos.ring + 6 - head}px`;
+      bz.style.height = `${(dialPos.bunny || 0) + head}px`;
       bz.hidden = (dialPos.bunny || 0) < 70;
     }
   }
@@ -1750,9 +1752,11 @@
     if (!w || !h) return;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    // fit about 3.9 units of height and 3.4 of width
+    // fit about 3.9 units of height and 3.4 of width, plus 22% headroom on top for hopping
+    const HEAD = 0.22, span = 3.9 * (1 + HEAD);
+    TARGET.y = 1.55 + 3.9 * HEAD / 2;
     const t = Math.tan(THREE.MathUtils.degToRad(15));
-    dist = Math.max(1.95 / t, 1.7 / (t * camera.aspect));
+    dist = Math.max(span / 2 / t, 1.7 / (t * camera.aspect));
     camera.updateProjectionMatrix();
     wake();
   }
@@ -1783,8 +1787,8 @@
     glow += ((mood === 'success' ? 1 : 0) - glow) * Math.min(1, dt * 2.5);
 
     // success: a small hop, ears flicking, timed with the check mark
-    // keep hopping every couple of seconds until OK is pressed
-    if (mood === 'success' && now > hopAt + 2.1) { hopAt = now + 0.15; landed = false; }
+    // keep hopping about once a second until OK is pressed
+    if (mood === 'success' && now > hopAt + 1.0) { hopAt = now + 0.15; landed = false; }
     const hp = (now - hopAt) / 0.55;
     let lift = 0;
     if (hp >= -0.15 && hp < 0) squish = Math.max(squish, 0.6);          // crouch before the jump
