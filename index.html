@@ -1052,7 +1052,14 @@
     if (bz) {
       // extra room above the bunny so its ears stay in view when it hops (it may overlap the dial's lower edge)
       const head = Math.round((dialPos.bunny || 0) * 0.22);
-      bz.style.top = `${dialPos.top + dateH + 2 + gap + dialPos.ring + 6 - head}px`;
+      const ringBottom = dialPos.top + dateH + 2 + gap + dialPos.ring;
+      let bodyTop = ringBottom + 6;
+      if (view === 'timer' && phase !== 'idle') {
+        // timing / finished: the card is short, so sit midway between the ring's bottom and the card's top
+        const cardTop = card.getBoundingClientRect().top - app.getBoundingClientRect().top;
+        bodyTop = Math.max(ringBottom + 6, Math.round((ringBottom + cardTop - (dialPos.bunny || 0)) / 2));
+      }
+      bz.style.top = `${bodyTop - head}px`;
       bz.style.height = `${(dialPos.bunny || 0) + head}px`;
       bz.hidden = (dialPos.bunny || 0) < 70;
     }
