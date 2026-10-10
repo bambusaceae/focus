@@ -861,11 +861,13 @@
   }
   function complete() {
     const cat = session.category || 'prosing';
-    sessions.push({ id: `${session.start}-${Math.random().toString(36).slice(2, 8)}`, start: session.start, minutes: session.minutes, category: cat });
-    save(K.sessions, sessions);
-    save(K.dirty, Date.now());           // a new record that GitHub doesn't have yet
-    rebuild();
-    sync();
+    if (session.minutes >= 1) {           // the 3-second test session is never recorded
+      sessions.push({ id: `${session.start}-${Math.random().toString(36).slice(2, 8)}`, start: session.start, minutes: session.minutes, category: cat });
+      save(K.sessions, sessions);
+      save(K.dirty, Date.now());           // a new record that GitHub doesn't have yet
+      rebuild();
+      sync();
+    }
     last = { minutes: session.minutes, category: cat };
     session = null; drop(K.session);
     phase = 'success';
@@ -1138,11 +1140,12 @@
         chipEls.push([p, c]);
         chips.append(c);
       }
-      if (minutes !== 1 && minutes % 60 !== 1) minutes = Math.min(3 * 60 + 55, Math.max(5, Math.round(minutes / 5) * 5));   // 5-minute steps (plus a 1-minute stop), up to 3 h 55
-      let hh = Math.floor(minutes / 60), mm = minutes % 60;
+      const TEST = 0.05;                    // 3 seconds, for trying the end-of-session animations
+      if (Math.abs(minutes - Math.floor(minutes) - TEST) > 1e-6) minutes = Math.min(3 * 60 + 55, Math.max(5, Math.round(minutes / 5) * 5));   // 5-minute steps (plus the test stop), up to 3 h 55
+      let hh = Math.floor(minutes / 60), mm = Math.round((minutes - hh * 60) * 100) / 100;
       const update = () => { minutes = hh * 60 + mm || 5; changed(); };
       hWheel = wheel([0, 1, 2, 3], hh, 'Hours', (v) => { hh = v; update(); });
-      mWheel = wheel([0, 1, ...Array.from({ length: 11 }, (_, i) => (i + 1) * 5)], mm, 'Minutes', (v) => { mm = v; update(); });
+      mWheel = wheel([0, TEST, ...Array.from({ length: 11 }, (_, i) => (i + 1) * 5)], mm, 'Minutes', (v) => { mm = v; update(); });
       const picker = el('div', 'picker');
       const colH = el('div', 'col'); colH.append(hWheel, el('span', 'unit', 'hours'));
       const colM = el('div', 'col'); colM.append(mWheel, el('span', 'unit', 'min'));
@@ -1161,7 +1164,7 @@
     if (phase === 'focusing') {
       tick();
       card.append(
-        head(CATS[session.category] || 'Focusing', `${session.minutes} minutes · ends at ${hhmm(session.end)}`, session.category),
+        head(CATS[session.category] || 'Focusing', `${session.minutes < 1 ? '3-second test' : session.minutes + ' minutes'} · ends at ${hhmm(session.end)}`, session.category),
         actions(act('Give up', '', () => { phase = 'confirm'; render(); })));
     }
 
@@ -1176,7 +1179,7 @@
     if (phase === 'success') {
       setClock(last.minutes * 60);
       card.append(
-        head('Session complete', `${last.minutes} minutes of ${CATS[last.category].toLowerCase()} added to today.`, last.category),
+        head('Session complete', last.minutes < 1 ? 'Test session, not added to history.' : `${last.minutes} minutes of ${CATS[last.category].toLowerCase()} added to today.`, last.category),
         actions(act('History', '', () => { phase = 'idle'; view = 'cal'; panel = 'history'; selected = null; render(); }),
                 act('OK', 'primary', () => { phase = 'idle'; render(); })));
     }
