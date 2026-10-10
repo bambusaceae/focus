@@ -1780,6 +1780,8 @@
     glow += ((mood === 'success' ? 1 : 0) - glow) * Math.min(1, dt * 2.5);
 
     // success: a small hop, ears flicking, timed with the check mark
+    // keep hopping every couple of seconds until OK is pressed
+    if (mood === 'success' && now > hopAt + 2.1) { hopAt = now + 0.15; landed = false; }
     const hp = (now - hopAt) / 0.55;
     let lift = 0;
     if (hp >= -0.15 && hp < 0) squish = Math.max(squish, 0.6);          // crouch before the jump
