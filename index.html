@@ -1253,9 +1253,9 @@
 
   // ---------- GitHub sync ----------
   const getToken = () => load(K.token, '');
-  const getRepo = () => load(K.repo, 'bambusaceae/focus-data');
+  const getRepo = () => load(K.repo, '');
   function syncLabel() {
-    if (!getToken()) return 'GitHub Sync is off';
+    if (!getToken() || !getRepo()) return 'GitHub Sync is off';
     if (syncState.busy) return 'Syncing…';
     if (syncState.error) return `Sync failed: ${syncState.error}`;
     const t = load(K.synced, 0);
@@ -1301,7 +1301,7 @@
   }
 
   async function sync() {
-    if (!getToken() || syncState.busy || !navigator.onLine) return;
+    if (!getToken() || !getRepo() || syncState.busy || !navigator.onLine) return;
     syncState = { busy: true, error: '' };
     const startedAt = Date.now();
     if (view === 'cal') render();
@@ -1343,7 +1343,7 @@
   }
   // the sync button shows an x while there are finished sessions GitHub doesn't have yet
   // …and also whenever GitHub Sync is off (no token saved)
-  function paintSync() { $('btn-sync').classList.toggle('unsynced', !getToken() || !!load(K.dirty, 0)); }
+  function paintSync() { $('btn-sync').classList.toggle('unsynced', !getToken() || !getRepo() || !!load(K.dirty, 0)); }
 
   function renderSync() {
     const card = $('card');
@@ -1354,13 +1354,14 @@
     const repoIn = el('input', 'field');
     repoIn.id = 'sync-repo'; repoIn.type = 'text'; repoIn.autocapitalize = 'off'; repoIn.spellcheck = false;
     repoIn.value = getRepo();
+    repoIn.placeholder = 'owner/repository';
     const lab = (t, f) => { const w = el('label', 'fieldwrap'); w.append(el('span', 'k', t), f); return w; };
 
 
     const syncBtn = act('Sync', 'primary mini', async () => {
       const t = tokenIn.value.trim();
       if (t) save(K.token, t);
-      save(K.repo, repoIn.value.trim() || 'bambusaceae/focus-data');
+      save(K.repo, repoIn.value.trim());
       await sync();
       render();
     });
