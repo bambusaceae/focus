@@ -1769,13 +1769,13 @@
     raf = 0;
     if (!active || document.hidden) return;
     const now = clock.getElapsedTime();
-    const calm = !gesture && now >= annoyEnd && now > hopAt + 1 && sad < 0.01 && Math.abs(glow - (mood === 'success' ? 1 : 0)) < 0.01 && happy < 0.01 && squish < 0.01 && blinkStart < 0 && Math.abs(azim - (busy ? HOME : azim)) < 0.01;
+    const calm = !gesture && now >= annoyEnd && now > hopAt + 1 && sad < 0.01 && Math.abs(glow - (mood === 'success' ? 1 : 0)) < 0.01 && happy < 0.01 && squish < 0.01 && blinkStart < 0 && Math.abs(azim - (busy || mood !== 'idle' ? 0 : azim)) < 0.01;
     if (now - lastDraw < (calm ? 1 / 15 : 1 / 30)) { raf = requestAnimationFrame(frame); return; }
     lastDraw = now;
     const dt = Math.min(0.08, now - last); last = now;
 
-    // while timing, the view drifts back to the front
-    if (busy && !gesture) azim += (HOME - azim) * Math.min(1, dt * 3);
+    // while timing and on the success / stopped screens, it turns to face you straight on
+    if ((busy || mood !== 'idle') && !gesture) azim += (0 - azim) * Math.min(1, dt * 3);
     camera.position.set(Math.sin(azim) * Math.cos(ELEV), Math.sin(ELEV), Math.cos(azim) * Math.cos(ELEV)).multiplyScalar(dist).add(TARGET);
     camera.lookAt(TARGET);
 
