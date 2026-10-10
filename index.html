@@ -1016,7 +1016,8 @@
       $(id).disabled = busy;
     }
     $('scrim').hidden = view !== 'cal';
-    window.fgBunnyState = { busy, active: view === 'timer', mood: phase === 'success' ? 'success' : phase === 'failed' ? 'failed' : 'idle' };
+    const catNow = busy && session ? (session.category || category) : (phase === 'idle' ? category : last.category);
+    window.fgBunnyState = { busy, glasses: catNow === 'working', active: view === 'timer', mood: phase === 'success' ? 'success' : phase === 'failed' ? 'failed' : 'idle' };
     if (window.fgBunny) window.fgBunny.set(window.fgBunnyState);
     paintSync();
     const today = new Date();
@@ -1623,6 +1624,36 @@
     stroke([[-0.04, 0.012, 0.019], [-0.018, -0.006, 0.02], [0, -0.022, 0.02], [0.018, -0.006, 0.02], [0.04, 0.012, 0.019]]),
     stroke([[0, -0.022, 0.02], [0, -0.05, 0.01], [0, -0.08, 0.003]]));
   placeOn(nose, 0, -0.08, 0.004);
+  // glasses: dark red matte half-rims under the eyes (no top bar), square in section, joined by a low bridge
+  const glassGroup = new THREE.Group(); glassGroup.visible = false; headGroup.add(glassGroup);   // worn only for Working
+  const glassMat = new THREE.MeshStandardMaterial({ color: new THREE.Color('#8e0d1c').convertSRGBToLinear(), roughness: 0.95, metalness: 0 });
+  const onFace = (x, y, lift) => {
+    const nx = x / headS.x, ny = y / headS.y;
+    const local = new THREE.Vector3(x, y, Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny)) * headS.z);
+    const n = new THREE.Vector3(local.x / headS.x ** 2, local.y / headS.y ** 2, local.z / headS.z ** 2).normalize();
+    return local.add(headC).addScaledVector(n, lift).sub(NECK);
+  };
+  const G = { inner: 0.14, outer: 0.47, top: 0.015, bottom: -0.13, bridge: 0.0, corner: 0.03, lift: 0.03, half: 0.014 };
+  const bar = new THREE.Shape();
+  bar.moveTo(-G.half, -G.half); bar.lineTo(G.half, -G.half); bar.lineTo(G.half, G.half); bar.lineTo(-G.half, G.half); bar.lineTo(-G.half, -G.half);
+  const glassBar = pts => {
+    const path = new THREE.CatmullRomCurve3(pts.map(([x, y]) => onFace(x, y, G.lift)), false, 'centripetal');
+    const m = new THREE.Mesh(new THREE.ExtrudeGeometry(bar, { steps: 40, bevelEnabled: false, extrudePath: path }), glassMat);
+    m.userData.part = 'head'; glassGroup.add(m); return m;
+  };
+  const line = (a, b, n, out) => { for (let i = 0; i <= n; i++) out.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n]); };
+  const arc = (cx, cy, r, a0, a1, n, out) => { for (let i = 1; i < n; i++) { const a = a0 + (a1 - a0) * i / n; out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } };
+  [-1, 1].forEach(s => {
+    // trace each rim from its outer top, down, along the bottom, and up the inner side
+    const o = s * G.outer, i = s * G.inner, r = G.corner, d = -s, pts = [];
+    line([o, G.top], [o, G.bottom + r], 4, pts);
+    arc(o + d * r, G.bottom + r, r, s > 0 ? 0 : Math.PI, s > 0 ? -Math.PI / 2 : Math.PI * 1.5, 5, pts);
+    line([o + d * r, G.bottom], [i - d * r, G.bottom], 6, pts);
+    arc(i - d * r, G.bottom + r, r, -Math.PI / 2, s > 0 ? -Math.PI : 0, 5, pts);
+    line([i, G.bottom + r], [i, G.top], 4, pts);
+    glassBar(pts);
+  });
+  { const pts = []; line([-G.inner, G.bridge], [G.inner, G.bridge], 8, pts); glassBar(pts); }
 
   // ---------- state ----------
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1812,6 +1843,7 @@
   window.fgBunny = {
     set(o) {
       busy = !!o.busy; active = o.active !== false;
+      glassGroup.visible = !!o.glasses;
       stage.classList.toggle('busy', busy);
       if (busy) { petting = false; tapTimes = []; azim = Math.atan2(Math.sin(azim), Math.cos(azim)); }
       const m = o.mood || 'idle';
