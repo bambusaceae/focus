@@ -531,7 +531,7 @@
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const drop = (k) => { try { localStorage.removeItem(k); } catch (e) {} };
 
-  const CATS = { prosing: 'Prosing', working: 'Working' };
+  const CATS = { prosing: 'Writing', working: 'Working' };
 
   // ---------- skins ----------
   const SKINS = [
@@ -1164,7 +1164,7 @@
       const dur = el('div', 'durrow');
       dur.append(picker, chips);
       card.append(
-        segmented('category', [['prosing', 'Prosing', true], ['working', 'Working', true]], category,
+        segmented('category', [['prosing', 'Writing', true], ['working', 'Working', true]], category,
           (k) => { category = k; save(K.cat, k); mark.classList.remove('prosing', 'working'); mark.classList.add(k); render(); }),
         dur,
         actions(act('Start', 'primary', start)));
@@ -1213,7 +1213,7 @@
     return (r.c && r.c[f]) || { s: 0, n: 0 };
   }
   const lvl = (s) => s === 0 ? 0 : s < 1800 ? 1 : s < 3600 ? 2 : s < 7200 ? 3 : 4;
-  // All = gray; Prosing / Working = that category's color
+  // All = gray; Writing / Working = that category's color
   const shade = () => filter === 'prosing' ? 'p' : filter === 'working' ? 'w' : 'l';
   function cellClass(d) {
     const l = lvl(stat(d, filter).s);
@@ -1232,7 +1232,7 @@
     const st = stat(d, filter);
     const isToday = dayKey(d) === dayKey(today);
 
-    // the chosen day, one line per category: "Prosing 2h"
+    // the chosen day, one line per category: "Writing 2h"
     const day = el('div', 'day');
     const r = records[dayKey(d)] || { s: 0, c: {} };
     let named = 0;
@@ -1261,7 +1261,7 @@
     }
 
     const card = $('card');
-    const seg = segmented('filter', [['all', 'All', false], ['prosing', 'Prosing', true], ['working', 'Working', true]], filter,
+    const seg = segmented('filter', [['all', 'All', false], ['prosing', 'Writing', true], ['working', 'Working', true]], filter,
       (k) => { const o = document.querySelector('.graph-scroll'); const keep = o ? o.scrollLeft : 0; filter = k; render(); if (selected) { const n = document.querySelector('.graph-scroll'); if (n) n.scrollLeft = keep; } });
 
     const stats = el('div', 'stats');
