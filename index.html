@@ -232,7 +232,8 @@
   .meadow { position: relative; height: 172px; border-radius: 14px; overflow: hidden;
     background: radial-gradient(ellipse 120% 90% at 50% 120%, color-mix(in srgb, var(--fg) 7%, var(--cell0)), var(--cell0) 70%); }
   .meadow .hop { position: absolute; left: 0; top: 0; will-change: transform; pointer-events: none; }
-  .meadow .hop img { display: block; width: 100%; height: auto; }
+  .meadow .hop .bod { position: relative; width: 100%; aspect-ratio: 104 / 150; transform-origin: 50% 100%; }
+  .meadow .hop img { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; }
   .meadow .hop::after { content: ""; position: absolute; left: 14%; right: 14%; bottom: -3%; height: 9%; border-radius: 50%;
     background: rgba(0,0,0,.16); transform: scale(var(--sh, 1)); z-index: -1; }
   .meadow .empty-note { position: absolute; inset: 0; display: grid; place-items: center; padding: 0 24px; text-align: center; font-size: 13px; color: var(--muted); }
@@ -1275,11 +1276,13 @@
     return { doodle: Math.floor(doodle / per), work: Math.floor(work / per), doodleLeft: per - doodle % per, workLeft: per - work % per };
   }
   function makeBunny(kind) {
-    const node = el('div', 'hop'); const img = document.createElement('img'); img.alt = ''; node.append(img);
-    const b = { kind, node, img, x: Math.random(), y: Math.random(), dir: Math.random() < .5 ? -1 : 1, state: 'sit', until: performance.now() + Math.random() * 1500, hop: null, front: Math.random() < .5 };
+    const node = el('div', 'hop'), bod = el('div', 'bod'), side = document.createElement('img'), front = document.createElement('img');
+    const k = kind === 'work' ? 'g' : 'p'; side.alt = front.alt = ''; side.src = BUNNY_IMG[k + '-side']; front.src = BUNNY_IMG[k + '-front'];
+    bod.append(side, front); node.append(bod);
+    const b = { kind, node, bod, side, frontImg: front, x: Math.random(), y: Math.random(), dir: Math.random() < .5 ? -1 : 1, state: 'sit', until: performance.now() + Math.random() * 1500, hop: null, front: Math.random() < .5 };
     setPose(b); return b;
   }
-  function setPose(b) { b.img.src = BUNNY_IMG[(b.kind === 'work' ? 'g' : 'p') + '-' + (b.front ? 'front' : 'side')]; }
+  function setPose(b) { b.side.style.visibility = b.front ? 'hidden' : 'visible'; b.frontImg.style.visibility = b.front ? 'visible' : 'hidden'; }
   function meadowEl() {
     if (!meadow.el) meadow.el = el('div', 'meadow');
     const m = meadow.el, n = meadowCounts();
@@ -1313,7 +1316,7 @@
     for (const b of meadow.bunnies) {
       if (!still && b.state === 'sit' && t > b.until) {
         if (Math.random() < .25) b.dir = -b.dir;
-        b.hops = 1 + Math.floor(Math.random() * 4); b.front = false; setPose(b);
+        b.hops = 1; b.front = false; setPose(b);
         b.state = 'hop'; b.hop = newHop(b, true);
       }
       let lift = 0, sx = 1, sy = 1, tilt = 0;
@@ -1326,9 +1329,9 @@
           const v = (e - crouch) / air;
           b.x = b.hop.x0 + b.hop.dx * v; b.y = b.hop.y0 + b.hop.dy * v;
           lift = 4 * v * (1 - v) * b.hop.h;
-          const st = 0.14 * Math.abs(1 - 2 * v) ** 2;
+          const st = 0.1 * Math.sin(Math.PI * Math.min(1, v * 2));   // stretch on the way up only, 0 at both ends
           sx = 1 - st * 0.6; sy = 1 + st;
-          tilt = b.dir * (v - 0.5) * 0.35;
+          tilt = -b.dir * 0.17 * Math.sin(2 * Math.PI * v);           // nose up, then down, level again on landing
         } else {
           b.x = b.hop.x0 + b.hop.dx; b.y = b.hop.y0 + b.hop.dy;
           if (b.x < 0.02 || b.x > 0.98) { b.dir = -b.dir; b.x = Math.min(0.98, Math.max(0.02, b.x)); }
@@ -1338,16 +1341,21 @@
           else { b.state = 'sit'; b.until = t + 900 + Math.random() * 2600; if (Math.random() < .45) { b.front = true; setPose(b); } }
         }
       }
+      if (b.landT != null && b.state === 'sit') {
+        // landing: eases into a squash, then a small springy wobble that settles
+        const k = (t - b.landT) / 1000;
+        if (k < 0.6) { const w = Math.sin(k * 28) * Math.exp(-k / 0.1); sx *= 1 + 0.14 * w; sy *= 1 - 0.18 * w; }
+      }
       // depth: higher on the ground = farther = smaller and behind
       const depth = 0.72 + b.y * 0.28, s = size * depth;
       const px = 6 + b.x * (W - s * 0.66 - 12), py = s * 0.55 + b.y * (H - s * 1.55 - 16);   // headroom on top for the hops
       const flip = b.state === 'hop' ? -b.dir : (b.front ? 1 : -b.dir);
-      b.node.style.width = `${s * 0.66}px`;
-      b.node.style.zIndex = String(Math.round(b.y * 100));
+      const wpx = Math.round(s * 0.66), zi = Math.round(b.y * 100);
+      if (wpx !== b.wpx) { b.wpx = wpx; b.node.style.width = `${wpx}px`; }
+      if (zi !== b.zi) { b.zi = zi; b.node.style.zIndex = String(zi); }
       b.node.style.setProperty('--sh', String(1 - lift * 0.9));
       b.node.style.transform = `translate(${px}px, ${py - lift * s}px) scale(${flip}, 1)`;
-      b.img.style.transformOrigin = '50% 100%';
-      b.img.style.transform = `rotate(${tilt * flip * -1}rad) scale(${sx}, ${sy})`;
+      b.bod.style.transform = `rotate(${tilt * flip * -1}rad) scale(${sx}, ${sy})`;
     }
     meadow.raf = requestAnimationFrame(meadowTick);
   }
