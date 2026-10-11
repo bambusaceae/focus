@@ -229,14 +229,16 @@
 
   .middle { flex: 1; min-height: 16px; }
   /* history meadow: one bunny per HOURS_PER_BUNNY of focus, hopping around */
-  .meadow { position: relative; height: 172px; border-radius: 14px; overflow: hidden;
-    background: radial-gradient(ellipse 120% 90% at 50% 120%, color-mix(in srgb, var(--fg) 7%, var(--cell0)), var(--cell0) 70%); }
+  .meadow { position: absolute; left: 0; right: 0; top: 0; height: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .35s ease; }
+  .meadow.on { opacity: 1; }
+  .bunny { transition: opacity .3s ease; }
+  .app.cal .bunny { opacity: 0; }
   .meadow .hop { position: absolute; left: 0; top: 0; will-change: transform; pointer-events: none; }
   .meadow .hop .bod { position: relative; width: 100%; aspect-ratio: 104 / 150; transform-origin: 50% 100%; }
   .meadow .hop img { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; }
   .meadow .hop::after { content: ""; position: absolute; left: 14%; right: 14%; bottom: -3%; height: 9%; border-radius: 50%;
     background: rgba(0,0,0,.16); transform: scale(var(--sh, 1)); z-index: -1; }
-  .meadow .empty-note { position: absolute; inset: 0; display: grid; place-items: center; padding: 0 24px; text-align: center; font-size: 13px; color: var(--muted); }
+  .meadow .empty-note { position: absolute; left: 0; right: 0; bottom: 18px; padding: 0 24px; text-align: center; font-size: 13px; color: var(--muted); }
   .meadow-key { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding-inline: 2px; font-variant-numeric: tabular-nums; }
   .meadow-key b { font-weight: 500; color: var(--fg); }
 
@@ -380,7 +382,7 @@
   .wk span { line-height: 11px; }
   .graph-scroll { overflow-x: auto; min-width: 0; flex: 1; scrollbar-width: none; }
   .graph-scroll::-webkit-scrollbar { display: none; }
-  .graph { display: grid; grid-auto-flow: column; grid-template-rows: 14px repeat(7, 11px); grid-auto-columns: 11px; gap: 3px; width: max-content; padding-right: 1px; }
+  .graph { display: grid; grid-auto-flow: column; grid-template-rows: 14px repeat(5, 11px); grid-auto-columns: 11px; gap: 3px; width: max-content; padding-right: 1px; }
   .mlabel { font-size: 9px; color: var(--muted); white-space: nowrap; line-height: 14px; }
   .cell { width: 11px; height: 11px; border-radius: 2px; background: var(--cell0); border: 0; padding: 0; cursor: pointer; }
   .cell.l1 { background: color-mix(in srgb, var(--fg) 22%, var(--cell0)); }
@@ -1028,6 +1030,8 @@
       $(id).disabled = busy;
     }
     $('scrim').hidden = view !== 'cal';
+    document.querySelector('.app').classList.toggle('cal', view === 'cal');
+    if (meadow.el && view !== 'cal') meadow.el.classList.remove('on');
     const catNow = busy && session ? (session.category || category) : (phase === 'idle' ? category : last.category);
     window.fgBunnyState = { busy, glasses: catNow === 'working', active: view === 'timer', mood: phase === 'success' ? 'success' : phase === 'failed' ? 'failed' : 'idle' };
     if (window.fgBunny) window.fgBunny.set(window.fgBunnyState);
@@ -1172,7 +1176,6 @@
   }
 
   function renderCal() {
-    filter = 'all';                         // the history shows everything together now
     const today = startOfDay(new Date());
     const d = selected || today;
     const st = stat(d, filter);
@@ -1214,19 +1217,22 @@
       const s = el('div', 'stat'); s.append(el('div', 'k', k), el('div', 'v', v)); stats.append(s);
     }
 
+    const seg = segmented('filter', [['all', 'All', false], ['prosing', 'Doodling', true], ['working', 'Working', true]], filter,
+      (k) => { const o = document.querySelector('.graph-scroll'); const keep = o ? o.scrollLeft : 0; filter = k; render(); if (selected) { const n = document.querySelector('.graph-scroll'); if (n) n.scrollLeft = keep; } });
+
     const wrap = el('div', 'graph-wrap');
-    const wk = el('div', 'wk');
-    for (const t of ['', 'Mon', '', 'Wed', '', 'Fri', '', '']) wk.append(el('span', '', t));
     const sc = el('div', 'graph-scroll');
     const g = el('div', 'graph');
-    const first = addDays(mon, -(WEEKS - 1) * 7);
+    // columns of 5 consecutive days (not weeks), so the grid is shorter; today is the last cell
+    const ROWS = 5, COLS = 73;
+    const first = addDays(today, -(ROWS * COLS - 1));
     let prevMonth = -1;
-    for (let w = 0; w < WEEKS; w++) {
-      const colStart = addDays(first, w * 7);
+    for (let w = 0; w < COLS; w++) {
+      const colStart = addDays(first, w * ROWS);
       const m = colStart.getMonth();
       g.append(el('div', 'mlabel', w > 0 && m !== prevMonth ? MONTHS[m] : ''));
       prevMonth = m;
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < ROWS; i++) {
         const day = addDays(colStart, i);
         const cell = el('button');
         cell.type = 'button';
@@ -1246,14 +1252,15 @@
       }
     }
     sc.append(g);
-    wrap.append(wk, sc);
+    wrap.append(sc);
 
     const legend = el('div', 'legend');
     legend.append(el('span', '', 'Less'), el('span', 'gap'), el('span', 'cell'));
     for (const l of [1, 2, 3, 4]) legend.append(el('span', `cell ${shade()}${l}`));
     legend.append(el('span', 'gap'), el('span', '', 'More'));
 
-    card.append(meadowEl(), meadowKey(), stats);
+    meadowShow();
+    card.append(seg, meadowKey(), stats);
     if (day.childElementCount) card.append(day);
     card.append(el('div', 'rule'), wrap, legend);
     if (!selected) {
@@ -1288,8 +1295,8 @@
     setPose(b); return b;
   }
   function setPose(b) { b.side.style.visibility = b.front ? 'hidden' : 'visible'; b.frontImg.style.visibility = b.front ? 'visible' : 'hidden'; }
-  function meadowEl() {
-    if (!meadow.el) meadow.el = el('div', 'meadow');
+  function meadowShow() {
+    if (!meadow.el) { meadow.el = el('div', 'meadow'); document.querySelector('.app').insertBefore(meadow.el, document.querySelector('.top')); }
     const m = meadow.el, n = meadowCounts();
     const want = { work: Math.min(MEADOW_MAX, n.work), doodle: Math.min(MEADOW_MAX, n.doodle) };
     for (const kind of ['work', 'doodle']) {
@@ -1300,8 +1307,8 @@
     let note = m.querySelector('.empty-note');
     if (!meadow.bunnies.length) { if (!note) m.append(el('div', 'empty-note', `Your first bunny arrives after ${HOURS_PER_BUNNY} hour${HOURS_PER_BUNNY > 1 ? 's' : ''} of focus.`)); }
     else if (note) note.remove();
+    m.classList.add('on');
     cancelAnimationFrame(meadow.raf); meadow.last = 0; meadow.raf = requestAnimationFrame(meadowTick);
-    return m;
   }
   function meadowKey() {
     const n = meadowCounts(), k = el('div', 'meadow-key');
@@ -1314,10 +1321,14 @@
   }
   function meadowTick(t) {
     const m = meadow.el;
-    if (!m || !m.isConnected || view !== 'cal' || document.hidden) { meadow.raf = 0; return; }
-    const W = m.clientWidth, H = m.clientHeight, still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!m || view !== 'cal' || document.hidden) { meadow.raf = 0; return; }
+    // the bunnies hop over the whole screen above the history card
+    const cardTop = $('card').getBoundingClientRect().top - m.getBoundingClientRect().top;
+    const hNow = Math.max(140, Math.round(cardTop - 6));
+    if (hNow !== meadow.h) { meadow.h = hNow; m.style.height = `${hNow}px`; }
+    const W = m.clientWidth, H = hNow, still = matchMedia('(prefers-reduced-motion: reduce)').matches;
     // more bunnies, smaller bunnies
-    const count = meadow.bunnies.length, size = Math.max(30, Math.min(62, 62 - (count - 6) * 0.9));
+    const count = meadow.bunnies.length, size = Math.max(36, Math.min(72, 72 - (count - 6) * 0.9));
     const newHop = (b, first) => ({ t0: t, x0: b.x, y0: b.y, crouch: first ? 0 : 90, air: 360 + Math.random() * 140,
       dx: b.dir * (0.05 + Math.random() * 0.07), dy: (Math.random() - .5) * 0.14, h: 0.2 + Math.random() * 0.2 });
     for (const b of meadow.bunnies) {
