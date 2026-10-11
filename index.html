@@ -1305,42 +1305,56 @@
   function meadowTick(t) {
     const m = meadow.el;
     if (!m || !m.isConnected || view !== 'cal' || document.hidden) { meadow.raf = 0; return; }
-    const dt = Math.min(0.05, meadow.last ? (t - meadow.last) / 1000 : 0); meadow.last = t;
     const W = m.clientWidth, H = m.clientHeight, still = matchMedia('(prefers-reduced-motion: reduce)').matches;
     // more bunnies, smaller bunnies
     const count = meadow.bunnies.length, size = Math.max(30, Math.min(62, 62 - (count - 6) * 0.9));
+    const newHop = (b, first) => ({ t0: t, x0: b.x, y0: b.y, crouch: first ? 130 : 70, air: 360 + Math.random() * 140,
+      dx: b.dir * (0.05 + Math.random() * 0.07), dy: (Math.random() - .5) * 0.14, h: 0.35 + Math.random() * 0.35 });
     for (const b of meadow.bunnies) {
       if (!still && b.state === 'sit' && t > b.until) {
-        // start a run of 1-4 hops in some direction
         if (Math.random() < .25) b.dir = -b.dir;
         b.hops = 1 + Math.floor(Math.random() * 4); b.front = false; setPose(b);
-        b.state = 'hop'; b.hop = { t0: t, x0: b.x, y0: b.y, dx: b.dir * (0.05 + Math.random() * 0.06), dy: (Math.random() - .5) * 0.18 };
+        b.state = 'hop'; b.hop = newHop(b, true);
       }
-      let lift = 0, squash = 0;
+      let lift = 0, sx = 1, sy = 1, tilt = 0;
       if (b.state === 'hop') {
-        const p = (t - b.hop.t0) / 420;
-        if (p >= 1) {
+        const e = t - b.hop.t0, { crouch, air } = b.hop;
+        if (e < crouch) {
+          // wind up: sink and widen
+          const u = Math.sin(Math.PI / 2 * e / crouch);
+          sx = 1 + 0.12 * u; sy = 1 - 0.16 * u;
+        } else if (e < crouch + air) {
+          // in the air: a gravity arc, stretched at take-off and just before landing, nose up then down
+          const v = (e - crouch) / air;
+          b.x = b.hop.x0 + b.hop.dx * v; b.y = b.hop.y0 + b.hop.dy * v;
+          lift = 4 * v * (1 - v) * b.hop.h;
+          const st = 0.14 * Math.abs(1 - 2 * v) ** 2;
+          sx = 1 - st * 0.6; sy = 1 + st;
+          tilt = b.dir * (v - 0.5) * 0.35;
+        } else {
           b.x = b.hop.x0 + b.hop.dx; b.y = b.hop.y0 + b.hop.dy;
           if (b.x < 0.02 || b.x > 0.98) { b.dir = -b.dir; b.x = Math.min(0.98, Math.max(0.02, b.x)); }
           b.y = Math.min(1, Math.max(0, b.y));
-          if (--b.hops > 0) b.hop = { t0: t, x0: b.x, y0: b.y, dx: b.dir * (0.05 + Math.random() * 0.06), dy: (Math.random() - .5) * 0.12 };
-          else { b.state = 'sit'; b.until = t + 700 + Math.random() * 2600; if (Math.random() < .45) { b.front = true; setPose(b); } squash = 1; }
-        } else {
-          b.x = b.hop.x0 + b.hop.dx * p; b.y = b.hop.y0 + b.hop.dy * p;
-          lift = Math.sin(Math.PI * p); squash = p < .12 ? 1 - p / .12 : 0;
+          b.landT = t;
+          if (--b.hops > 0) b.hop = newHop(b, false);
+          else { b.state = 'sit'; b.until = t + 900 + Math.random() * 2600; if (Math.random() < .45) { b.front = true; setPose(b); } }
         }
       }
-      b.land = Math.max(squash, (b.land || 0) * Math.pow(0.0005, dt));
+      if (b.landT != null && (b.state === 'sit' || t - b.hop.t0 < b.hop.crouch)) {
+        // landing: squash, then a small springy wobble that settles
+        const k = (t - b.landT) / 1000;
+        if (k < 0.6) { const w = Math.exp(-k / 0.11) * Math.cos(k * 30); sx *= 1 + 0.14 * w; sy *= 1 - 0.18 * w; }
+      }
       // depth: higher on the ground = farther = smaller and behind
       const depth = 0.72 + b.y * 0.28, s = size * depth;
-      const px = 6 + b.x * (W - s * 0.66 - 12), py = 14 + b.y * (H - s - 30) ;
-      const hopPx = lift * s * 0.42;
+      const px = 6 + b.x * (W - s * 0.66 - 12), py = s * 0.55 + b.y * (H - s * 1.55 - 16);   // headroom on top for the hops
+      const flip = b.state === 'hop' ? -b.dir : (b.front ? 1 : -b.dir);
       b.node.style.width = `${s * 0.66}px`;
       b.node.style.zIndex = String(Math.round(b.y * 100));
-      b.node.style.setProperty('--sh', String(1 - lift * 0.45));
-      b.node.style.transform = `translate(${px}px, ${py - hopPx}px) scale(${b.state === 'hop' ? -b.dir : (b.front ? 1 : -b.dir)}, 1)`;
-      b.img.style.transform = `scale(${1 + b.land * 0.06}, ${1 - b.land * 0.08})`;
+      b.node.style.setProperty('--sh', String(1 - lift * 0.9));
+      b.node.style.transform = `translate(${px}px, ${py - lift * s}px) scale(${flip}, 1)`;
       b.img.style.transformOrigin = '50% 100%';
+      b.img.style.transform = `rotate(${tilt * flip * -1}rad) scale(${sx}, ${sy})`;
     }
     meadow.raf = requestAnimationFrame(meadowTick);
   }
