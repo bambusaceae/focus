@@ -239,7 +239,11 @@
   .meadow .hop::after { content: ""; position: absolute; left: 14%; right: 14%; bottom: -3%; height: 9%; border-radius: 50%;
     background: rgba(0,0,0,.16); transform: scale(var(--sh, 1)); z-index: -1; }
   .meadow .empty-note { position: absolute; left: 0; right: 0; bottom: 18px; padding: 0 24px; text-align: center; font-size: 13px; color: var(--muted); }
-  .meadow-key { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding-inline: 2px; font-variant-numeric: tabular-nums; }
+  .meadow-key { display: flex; gap: 6px 14px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--muted); padding-inline: 2px; font-variant-numeric: tabular-nums; }
+  .meadow-key .tag { margin-left: auto; height: 26px; font-size: 12.5px; padding: 0 11px; }
+  .resetrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-inline: 2px; }
+  .resetrow .note { font-size: 12.5px; color: var(--muted); line-height: 1.35; min-width: 0; }
+  .act.danger { color: #c2412d; flex: none; }
   .meadow-key b { font-weight: 500; color: var(--fg); }
 
   /* start card, flattened: tighter padding, shorter rows and buttons */
@@ -1031,7 +1035,7 @@
     }
     $('scrim').hidden = view !== 'cal';
     document.querySelector('.app').classList.toggle('cal', view === 'cal');
-    if (meadow.el && view !== 'cal') meadow.el.classList.remove('on');
+    if (meadow.el && view !== 'cal') { meadow.el.classList.remove('on'); if (meadow.forceSample) { meadow.forceSample = false; meadowReset(); } }
     const catNow = busy && session ? (session.category || category) : (phase === 'idle' ? category : last.category);
     window.fgBunnyState = { busy, glasses: catNow === 'working', active: view === 'timer', mood: phase === 'success' ? 'success' : phase === 'failed' ? 'failed' : 'idle' };
     if (window.fgBunny) window.fgBunny.set(window.fgBunnyState);
@@ -1282,7 +1286,8 @@
   function meadowCounts() {
     let doodle = 0, work = 0;
     for (const k of Object.keys(records)) { const c = records[k].c || {}; doodle += (c.prosing || { s: 0 }).s; work += (c.working || { s: 0 }).s; }
-    meadow.sample = !doodle && !work && !(getToken() && getRepo());
+    meadow.auto = !doodle && !work && !(getToken() && getRepo());
+    meadow.sample = meadow.auto || !!meadow.forceSample;
     if (meadow.sample) { doodle = MEADOW_SAMPLE.doodle * 3600; work = MEADOW_SAMPLE.work * 3600; }
     const per = HOURS_PER_BUNNY * 3600;
     return { doodle: Math.floor(doodle / per), work: Math.floor(work / per), doodleLeft: per - doodle % per, workLeft: per - work % per };
@@ -1295,6 +1300,7 @@
     setPose(b); return b;
   }
   function setPose(b) { b.side.style.visibility = b.front ? 'hidden' : 'visible'; b.frontImg.style.visibility = b.front ? 'visible' : 'hidden'; }
+  function meadowReset() { for (const b of meadow.bunnies) b.node.remove(); meadow.bunnies = []; }
   function meadowShow() {
     if (!meadow.el) { meadow.el = el('div', 'meadow'); document.querySelector('.app').insertBefore(meadow.el, document.querySelector('.top')); }
     const m = meadow.el, n = meadowCounts();
@@ -1316,7 +1322,14 @@
     const a = el('span'); a.append(el('b', '', `${n.work}`), document.createTextNode(meadow.sample ? ' Working' : ` Working · next in ${fmtLeft(n.workLeft)}`));
     const b = el('span'); b.append(el('b', '', `${n.doodle}`), document.createTextNode(meadow.sample ? ' Doodling' : ` Doodling · next in ${fmtLeft(n.doodleLeft)}`));
     k.append(a, b);
-    if (meadow.sample) k.append(el('span', '', 'Sample bunnies · yours replace them once you focus or connect GitHub Sync'));
+    if (meadow.auto) k.append(el('span', '', 'Sample bunnies · yours replace them once you focus or connect GitHub Sync'));
+    else {
+      // look at the sample bunnies instead of your own, and back
+      const t = el('button', 'tag', meadow.forceSample ? 'Show mine' : 'Sample');
+      t.type = 'button'; t.setAttribute('aria-pressed', String(!!meadow.forceSample));
+      t.addEventListener('click', () => { meadow.forceSample = !meadow.forceSample; meadowReset(); render(); });
+      k.append(t);
+    }
     return k;
   }
   function meadowTick(t) {
@@ -1498,7 +1511,28 @@
     const syncHead = el('div', 'section-k');
     syncHead.append(el('b', '', getToken() ? 'Reconnect' : 'Connect to GitHub'));
     card.append(status, el('div', 'rule'), syncHead, lab('Repository', repoIn), tokenRow);
+
+    // Reset: disconnects GitHub (if connected) and clears the focus history kept on this device.
+    // The GitHub repository itself is never touched. Needs a second tap within 4 s.
+    const connected = !!(getToken() || getRepo()), hasData = sessions.length > 0 || Object.keys(legacy).length > 0;
+    const what = connected && hasData ? 'Disconnects GitHub and clears the history on this device.'
+      : connected ? 'Disconnects GitHub from this device.'
+      : hasData ? 'Clears the history on this device.' : 'Nothing to reset.';
+    const armed = resetArmed > Date.now();
+    const resetBtn = act(armed ? 'Tap again' : 'Reset', 'mini danger', () => {
+      if (!armed) { resetArmed = Date.now() + 4000; render(); setTimeout(() => { if (view === 'cal' && panel === 'sync') render(); }, 4100); return; }
+      resetArmed = 0;
+      for (const k of [K.token, K.repo, K.synced, K.dirty, K.sessions, K.records, K.session]) drop(k);
+      legacy = {}; sessions = []; rebuild(); syncState = { busy: false, error: '' };
+      meadowReset(); render();
+    });
+    resetBtn.disabled = !connected && !hasData;
+    const resetHead = el('div', 'section-k'); resetHead.append(el('b', '', 'Reset'));
+    const row = el('div', 'resetrow');
+    row.append(el('div', 'note', armed ? `${what} Your GitHub repository is not changed.` : what), resetBtn);
+    card.append(el('div', 'rule'), resetHead, row);
   }
+  let resetArmed = 0;
   const THEMES = ['chocomint', 'rain', 'snow', 'tea', 'sakura'];   // skins that change more than colour
   function renderTheme() {
     const card = $('card');
