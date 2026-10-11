@@ -1311,19 +1311,19 @@
     const W = m.clientWidth, H = m.clientHeight, still = matchMedia('(prefers-reduced-motion: reduce)').matches;
     // more bunnies, smaller bunnies
     const count = meadow.bunnies.length, size = Math.max(30, Math.min(62, 62 - (count - 6) * 0.9));
-    const newHop = (b, first) => ({ t0: t, x0: b.x, y0: b.y, crouch: 0, air: 360 + Math.random() * 140,
+    const newHop = (b, first) => ({ t0: t, x0: b.x, y0: b.y, crouch: first ? 0 : 90, air: 360 + Math.random() * 140,
       dx: b.dir * (0.05 + Math.random() * 0.07), dy: (Math.random() - .5) * 0.14, h: 0.2 + Math.random() * 0.2 });
     for (const b of meadow.bunnies) {
       if (!still && b.state === 'sit' && t > b.until) {
         if (Math.random() < .25) b.dir = -b.dir;
-        b.hops = 1; b.front = false; setPose(b);
+        b.hops = 1 + Math.floor(Math.random() * 4); b.front = false; setPose(b);
         b.state = 'hop'; b.hop = newHop(b, true);
       }
       let lift = 0, sx = 1, sy = 1, tilt = 0;
       if (b.state === 'hop') {
         const e = t - b.hop.t0, { crouch, air } = b.hop;
         if (e < crouch) {
-          // between chained hops: a brief touch-down where only the landing bounce plays (no wind-up)
+          // between chained hops: a brief touch-down where the landing squash starts, then straight back up
         } else if (e < crouch + air) {
           // in the air: a gravity arc, stretched at take-off and just before landing, nose up then down
           const v = (e - crouch) / air;
@@ -1341,7 +1341,7 @@
           else { b.state = 'sit'; b.until = t + 900 + Math.random() * 2600; if (Math.random() < .45) { b.front = true; setPose(b); } }
         }
       }
-      if (b.landT != null && b.state === 'sit') {
+      if (b.landT != null && (b.state === 'sit' || t - b.hop.t0 < b.hop.crouch)) {
         // landing: eases into a squash, then a small springy wobble that settles
         const k = (t - b.landT) / 1000;
         if (k < 0.6) { const w = Math.sin(k * 28) * Math.exp(-k / 0.1); sx *= 1 + 0.14 * w; sy *= 1 - 0.18 * w; }
