@@ -1309,7 +1309,7 @@
     // more bunnies, smaller bunnies
     const count = meadow.bunnies.length, size = Math.max(30, Math.min(62, 62 - (count - 6) * 0.9));
     const newHop = (b, first) => ({ t0: t, x0: b.x, y0: b.y, crouch: first ? 130 : 70, air: 360 + Math.random() * 140,
-      dx: b.dir * (0.05 + Math.random() * 0.07), dy: (Math.random() - .5) * 0.14, h: 0.35 + Math.random() * 0.35 });
+      dx: b.dir * (0.05 + Math.random() * 0.07), dy: (Math.random() - .5) * 0.14, h: 0.2 + Math.random() * 0.2 });
     for (const b of meadow.bunnies) {
       if (!still && b.state === 'sit' && t > b.until) {
         if (Math.random() < .25) b.dir = -b.dir;
