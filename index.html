@@ -229,7 +229,7 @@
 
   .middle { flex: 1; min-height: 16px; }
   /* history meadow: one bunny per HOURS_PER_BUNNY of focus, hopping around */
-  .meadow { position: absolute; left: 0; right: 0; top: 0; height: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .35s ease; }
+  .meadow { position: absolute; left: 0; right: 0; top: 0; height: 0; z-index: 1;   /* above the dial and countdown, below the card */ pointer-events: none; opacity: 0; transition: opacity .35s ease; }
   .meadow.on { opacity: 1; }
   .bunny { transition: opacity .3s ease; }
   .app.cal .bunny { opacity: 0; }
