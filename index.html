@@ -530,7 +530,7 @@
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const drop = (k) => { try { localStorage.removeItem(k); } catch (e) {} };
 
-  const CATS = { prosing: 'Doodling', working: 'Working' };
+  const CATS = { prosing: 'Writing', working: 'Studying' };
 
   // ---------- skins ----------
   const SKINS = [
@@ -1117,7 +1117,7 @@
       const dur = el('div', 'durrow');
       dur.append(picker, chips);
       card.append(
-        segmented('category', [['prosing', 'Doodling', true], ['working', 'Working', true]], category,
+        segmented('category', [['prosing', 'Writing', true], ['working', 'Studying', true]], category,
           (k) => { category = k; save(K.cat, k); mark.classList.remove('prosing', 'working'); mark.classList.add(k); render(); }),
         dur,
         actions(act('Start', 'primary', start)));
@@ -1166,7 +1166,7 @@
     return (r.c && r.c[f]) || { s: 0, n: 0 };
   }
   const lvl = (s) => s === 0 ? 0 : s < 1800 ? 1 : s < 3600 ? 2 : s < 7200 ? 3 : 4;
-  // All = gray; Doodling / Working = that category's color
+  // All = gray; Writing / Studying = that category's color
   const shade = () => filter === 'prosing' ? 'p' : filter === 'working' ? 'w' : 'l';
   function cellClass(d) {
     const l = lvl(stat(d, filter).s);
@@ -1185,7 +1185,7 @@
     const st = stat(d, filter);
     const isToday = dayKey(d) === dayKey(today);
 
-    // the chosen day, one line per category: "Doodling 2h"
+    // the chosen day, one line per category: "Writing 2h"
     const day = el('div', 'day');
     const r = records[dayKey(d)] || { s: 0, c: {} };
     let named = 0;
@@ -1221,7 +1221,7 @@
       const s = el('div', 'stat'); s.append(el('div', 'k', k), el('div', 'v', v)); stats.append(s);
     }
 
-    const seg = segmented('filter', [['all', 'All', false], ['prosing', 'Doodling', true], ['working', 'Working', true]], filter,
+    const seg = segmented('filter', [['all', 'All', false], ['prosing', 'Writing', true], ['working', 'Studying', true]], filter,
       (k) => { const o = document.querySelector('.graph-scroll'); const keep = o ? o.scrollLeft : 0; filter = k; render(); if (selected) { const n = document.querySelector('.graph-scroll'); if (n) n.scrollLeft = keep; } });
 
     const wrap = el('div', 'graph-wrap');
@@ -1275,7 +1275,7 @@
 
 
   // ---------- history meadow ----------
-  // One bunny for every HOURS_PER_BUNNY hours of focus: Working bunnies wear glasses, Doodling ones don't.
+  // One bunny for every HOURS_PER_BUNNY hours of focus: Studying bunnies wear glasses, Writing ones don't.
   const HOURS_PER_BUNNY = 1;
   // Sample meadow for anyone who hasn't started yet (e.g. a shared link): shown only while there is
   // no recorded focus time and GitHub Sync isn't connected. Never saved or synced.
@@ -1319,8 +1319,8 @@
   function meadowKey() {
     const n = meadowCounts(), k = el('div', 'meadow-key');
     const fmtLeft = (s) => s >= 3600 ? `${Math.floor(s / 3600)}h ${Math.ceil((s % 3600) / 60)}m` : `${Math.ceil(s / 60)}m`;
-    const a = el('span'); a.append(el('b', '', `${n.work}`), document.createTextNode(meadow.sample ? ' Working' : ` Working · next in ${fmtLeft(n.workLeft)}`));
-    const b = el('span'); b.append(el('b', '', `${n.doodle}`), document.createTextNode(meadow.sample ? ' Doodling' : ` Doodling · next in ${fmtLeft(n.doodleLeft)}`));
+    const a = el('span'); a.append(el('b', '', `${n.work}`), document.createTextNode(meadow.sample ? ' Studying' : ` Studying · next in ${fmtLeft(n.workLeft)}`));
+    const b = el('span'); b.append(el('b', '', `${n.doodle}`), document.createTextNode(meadow.sample ? ' Writing' : ` Writing · next in ${fmtLeft(n.doodleLeft)}`));
     k.append(a, b);
     if (meadow.auto) k.append(el('span', '', 'Sample bunnies · yours replace them once you focus or connect GitHub Sync'));
     else {
@@ -1686,7 +1686,7 @@
 
   // white matte glaze, bare clay at the foot
   const glazeMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, metalness: 0 });
-  // two glazes: cream for Working (with glasses), a milk-tea brown for Doodling.
+  // two glazes: cream for Studying (with glasses), a milk-tea brown for Writing.
   // On the brown one the inner ears and nose are greyed and multiplied onto the glaze; `fill` lifts its shadow side.
   const lin = (h) => new THREE.Color(h).convertSRGBToLinear();
   const PALETTES = {
@@ -1829,7 +1829,7 @@
     stroke([[0, -0.022, 0.02], [0, -0.05, 0.01], [0, -0.08, 0.003]]));
   placeOn(nose, 0, -0.08, 0.004);
   // glasses: dark red matte half-rims under the eyes (no top bar), square in section, joined by a low bridge
-  const glassGroup = new THREE.Group(); glassGroup.visible = false; headGroup.add(glassGroup);   // worn only for Working
+  const glassGroup = new THREE.Group(); glassGroup.visible = false; headGroup.add(glassGroup);   // worn only for Studying
   const glassMat = new THREE.MeshStandardMaterial({ color: new THREE.Color('#8e0d1c').convertSRGBToLinear(), roughness: 0.95, metalness: 0 });
   const onFace = (x, y, lift) => {
     const nx = x / headS.x, ny = y / headS.y;
