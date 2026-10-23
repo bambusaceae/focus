@@ -2079,11 +2079,6 @@
     if (tapTimes.length >= 5) { shake(now); return; }
     const ear = /^ear(\d)$/.exec(part || '');
     if (ear) { groom(now, +ear[1]); return; }
-    if (part === 'head' && mood === 'idle') {
-      squish = 1;
-      smileUntil = now + 1.6;                                            // a pat gets a quick smile
-      return;
-    }
     blink(now); squish = 1;
   }
 
