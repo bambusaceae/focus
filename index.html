@@ -238,6 +238,9 @@
   .meadow .hop img { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; }
   .meadow .hop::after { content: ""; position: absolute; left: 14%; right: 14%; bottom: -3%; height: 9%; border-radius: 50%;
     background: rgba(0,0,0,.16); transform: scale(var(--sh, 1)); z-index: -1; }
+  .meadow-ping { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; border: 1px solid var(--muted);
+    z-index: 0; pointer-events: none; animation: ping .7s ease-out both; }
+  @keyframes ping { from { transform: scale(.3); opacity: .8; } to { transform: scale(1.4); opacity: 0; } }
   .meadow .empty-note { position: absolute; left: 0; right: 0; bottom: 18px; padding: 0 24px; text-align: center; font-size: 13px; color: var(--muted); }
   .meadow-key { display: flex; gap: 6px 14px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--muted); padding-inline: 2px; font-variant-numeric: tabular-nums; }
   .meadow-key .tag { margin-left: auto; height: 26px; font-size: 12.5px; padding: 0 11px; }
@@ -260,6 +263,8 @@
   .bunny canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
   .bunny canvas:active { cursor: grabbing; }
   .bunny.busy canvas { cursor: pointer; }
+  .bunny .zzz { position: absolute; inset: 0; pointer-events: none; }
+  .bunny .zzz span { position: absolute; left: 0; top: 0; font-family: var(--font-clock); font-weight: 500; line-height: 1; color: var(--muted); will-change: transform, opacity; }
   @media (prefers-reduced-motion: reduce) { .top { transition: none; } }
 
   /* notification card */
@@ -809,6 +814,47 @@
     phase = 'focusing';
     render();
   }
+  // Stopwatch: counts up from 0:00. Only whole 5-minute blocks count; the remainder is dropped.
+  // (On the 3-second test stop, a block is 3 seconds and nothing is recorded.)
+  const BLOCK = 300;
+  const isSw = (x) => !!(x && x.mode === 'stopwatch');
+  const swElapsed = (x, at) => Math.max(0, Math.floor(((at || Date.now()) - x.start) / 1000));
+  const swBlocks = (x, at) => Math.floor(swElapsed(x, at) / (x.block || BLOCK));
+  const swCounted = (x, at) => swBlocks(x, at) * 5;            // minutes credited
+  function startStopwatch() {
+    const now = Date.now(), test = minutes < 1;
+    last = { minutes: 0, category };
+    session = { mode: 'stopwatch', start: now, seen: now, block: test ? 3 : BLOCK, test, minutes: 0, category };
+    save(K.session, session);
+    phase = 'focusing';
+    render();
+  }
+  // end a stopwatch session at time `at`; whole blocks are kept, anything under 5 minutes means nothing is saved
+  function finishStopwatch(at, why) {
+    const x = session, cat = x.category || 'prosing';
+    const counted = swCounted(x, at), timed = swElapsed(x, at);
+    session = null; drop(K.session);
+    last = { minutes: counted, category: cat, mode: 'stopwatch', timed, test: x.test, why };
+    if (!counted) {
+      last.done = 0;
+      failText = why === 'left'
+        ? `You left the page at ${clock(timed)}, before the first 5 minutes.`
+        : `Stopped at ${clock(timed)}. Under 5 minutes doesn’t count.`;
+      phase = 'failed';
+      render();
+      return;
+    }
+    if (!x.test) {
+      sessions.push({ id: `${x.start}-${Math.random().toString(36).slice(2, 8)}`, start: x.start, minutes: counted, category: cat, mode: 'stopwatch' });
+      save(K.sessions, sessions);
+      save(K.dirty, Date.now());
+      rebuild();
+      sync();
+    }
+    phase = 'success';
+    celebrate = true;
+    render();
+  }
   function complete() {
     const cat = session.category || 'prosing';
     if (session.minutes >= 1) {           // the 3-second test session is never recorded
@@ -825,6 +871,7 @@
     render();
   }
   function fail(text) {
+    if (isSw(session)) { finishStopwatch(Date.now(), 'left'); return; }
     if (session) last = { minutes: session.minutes, category: session.category || category, done: Math.min(1, Math.max(0, (Date.now() - session.start) / (session.end - session.start))) };
     session = null; drop(K.session);
     failText = text;
@@ -834,7 +881,8 @@
   // Any time the page is hidden (another app, home screen, or screen lock), the session ends.
   function leave() {
     if ((phase === 'focusing' || phase === 'confirm') && session) {
-      if (Date.now() >= session.end) complete();
+      if (isSw(session)) finishStopwatch(Date.now(), 'left');
+      else if (Date.now() >= session.end) complete();
       else fail('You left the page, so the session stopped.');
     }
   }
@@ -846,6 +894,15 @@
   window.addEventListener('pagehide', leave);
 
   function tick() {
+    if ((phase === 'focusing' || phase === 'confirm') && isSw(session)) {
+      const now = Date.now(), secs = swElapsed(session, now), b = session.block || BLOCK;
+      setClock(secs);
+      $('ring').style.strokeDashoffset = String(100 - (secs % b) / b * 100);   // the ring fills clockwise over each 5-minute block, then starts again
+      const sub = $('sw-sub');
+      if (sub) sub.textContent = swSub(session, now);
+      if (now - (session.seen || 0) > 5000) { session.seen = now; save(K.session, session); }   // last moment we know the page was open
+      return;
+    }
     if ((phase === 'focusing' || phase === 'confirm') && session) {
       const left = Math.max(0, Math.ceil((session.end - Date.now()) / 1000));
       setClock(left);
@@ -969,6 +1026,13 @@
     ck.classList.remove('long');
   }
 
+  function swSub(x, now) {
+    const counted = swCounted(x, now), b = x.block || BLOCK;
+    const next = x.start + (swBlocks(x, now) + 1) * b * 1000;
+    const nextAt = x.test ? `in ${Math.ceil((next - now) / 1000)} s` : `at ${hhmm(next)}`;
+    return `${x.test ? 'Test · ' : ''}${counted} min counted · next 5 ${nextAt}`;
+  }
+
   // ---------- render ----------
   let lastKey = '';
   const afterRender = () => requestAnimationFrame(placeTop);
@@ -1062,7 +1126,7 @@
         mark.classList.add('play');
         if (window.fgBunny) window.fgBunny.celebrate(); else window.fgBunnyCelebrate = true;   // hop along with the check
         // today's total counts up by the minutes just earned, as the ring closes
-        const to = rec(today).s, from = Math.max(0, to - last.minutes * 60), t0 = performance.now() + 250;
+        const to = rec(today).s, from = Math.max(0, to - (last.test ? 0 : last.minutes) * 60), t0 = performance.now() + 250;
         dt.textContent = `Today ${fmtDur(from)}!`;
         const step = (t) => {
           const p = Math.min(1, Math.max(0, (t - t0) / 900));
@@ -1076,7 +1140,7 @@
     ck.classList.toggle('dim', phase === 'success' || phase === 'failed');
     if (phase === 'idle') setClock(minutes * 60);
     else if (phase === 'focusing' || phase === 'confirm') tick();
-    else setClock(last.minutes * 60);
+    else setClock(last.mode === 'stopwatch' && phase === 'failed' ? last.timed : last.minutes * 60);
 
     if (view === 'cal') { if (panel === 'sync') renderSync(); else if (panel === 'theme') renderTheme(); else renderCal(); afterRender(); return; }
     afterRender();
@@ -1120,17 +1184,32 @@
         segmented('category', [['prosing', 'Writing', true], ['working', 'Studying', true]], category,
           (k) => { category = k; save(K.cat, k); mark.classList.remove('prosing', 'working'); mark.classList.add(k); render(); }),
         dur,
-        actions(act('Start', 'primary', start)));
+        actions(act('Stopwatch', '', startStopwatch), act('Start', 'primary', start)));
     }
 
-    if (phase === 'focusing') {
+    if (phase === 'focusing' && isSw(session)) {
+      tick();
+      const h = head(CATS[session.category] || 'Focusing', swSub(session, Date.now()), session.category);
+      h.querySelector('.card-sub').id = 'sw-sub';
+      card.append(h,
+        actions(act('Stop', 'primary', () => {
+          if (swCounted(session)) finishStopwatch(Date.now(), 'stop');
+          else { phase = 'confirm'; render(); }
+        })));
+    } else if (phase === 'focusing') {
       tick();
       card.append(
         head(CATS[session.category] || 'Focusing', `${session.minutes < 1 ? '3-second test' : session.minutes + ' minutes'} · ends at ${hhmm(session.end)}`, session.category),
         actions(act('Give up', '', () => { phase = 'confirm'; render(); })));
     }
 
-    if (phase === 'confirm') {
+    if (phase === 'confirm' && isSw(session)) {
+      tick();
+      card.append(
+        head('Stop before 5 minutes?', 'Nothing will be added to your history.', session.category),
+        actions(act('Keep going', '', () => { phase = 'focusing'; render(); }),
+                act('Stop', 'primary', () => finishStopwatch(Date.now(), 'stop'))));
+    } else if (phase === 'confirm') {
       tick();
       card.append(
         head('Give up this session?', 'It won’t be added to your history.', session.category),
@@ -1140,14 +1219,17 @@
 
     if (phase === 'success') {
       setClock(last.minutes * 60);
+      const swText = last.mode === 'stopwatch'
+        ? `${last.why === 'left' ? 'You left the page at' : 'Timed'} ${clock(last.timed)} · ${last.test ? 'test, not added to history.' : `${last.minutes} min of ${CATS[last.category].toLowerCase()} added.`}`
+        : null;
       card.append(
-        head('Session complete', last.minutes < 1 ? 'Test session, not added to history.' : `${last.minutes} minutes of ${CATS[last.category].toLowerCase()} added to today.`, last.category),
+        head('Session complete', swText || (last.minutes < 1 ? 'Test session, not added to history.' : `${last.minutes} minutes of ${CATS[last.category].toLowerCase()} added to today.`), last.category),
         actions(act('History', '', () => { phase = 'idle'; view = 'cal'; panel = 'history'; selected = null; render(); }),
                 act('OK', 'primary', () => { phase = 'idle'; render(); })));
     }
 
     if (phase === 'failed') {
-      setClock(last.minutes * 60);
+      setClock(last.mode === 'stopwatch' ? last.timed : last.minutes * 60);
       card.append(
         head('Session stopped', failText, last.category),
         actions(act('Try again', 'primary', () => { phase = 'idle'; render(); })));
@@ -1332,6 +1414,73 @@
     }
     return k;
   }
+  // a bunny's width as a share of the field it hops across, so neighbours can sit just touching
+  function meadowSpan(y) {
+    const s = (meadow.size || 60) * (0.72 + y * 0.28), w = s * 0.66, W = meadow.W || 360;
+    return w / Math.max(1, W - w - 12);
+  }
+  const clamp01 = (v, lo = 0.02, hi = 0.98) => Math.min(hi, Math.max(lo, v));
+  // snuggle: a bunny that settles near another idle one may hop over so the two sit side by side for a while
+  function trySnuggle(b, t) {
+    if (b.partner || (b.cool && t < b.cool) || Math.random() > 0.55) return;
+    let best = null, bd = Infinity;
+    for (const o of meadow.bunnies) {
+      if (o === b || o.state !== 'sit' || o.goal || o.partner || (o.cool && t < o.cool)) continue;
+      const d = Math.hypot((o.x - b.x) * 1.4, o.y - b.y);
+      if (d < bd) { bd = d; best = o; }
+    }
+    if (!best || bd > 0.2) return;
+    // meet in the middle, one on each side, a touch less than a body apart
+    const y = clamp01((b.y + best.y) / 2, 0, 1), half = meadowSpan(y) * 0.42;
+    const mid = clamp01((b.x + best.x) / 2, 0.02 + half, 0.98 - half);
+    const [l, r] = b.x <= best.x ? [b, best] : [best, b];
+    const end = t + 5500 + Math.random() * 4000;
+    l.goal = { x: mid - half, y, then: 'snug' }; r.goal = { x: mid + half, y, then: 'snug' };
+    l.partner = r; r.partner = l; l.snugEnd = r.snugEnd = end;
+    for (const x of [l, r]) { x.state = 'sit'; x.until = 0; }
+  }
+  function arrive(b, t) {
+    const g = b.goal; b.goal = null; b.state = 'sit';
+    if (g.then === 'snug' && b.partner && meadow.bunnies.includes(b.partner)) {
+      b.dir = b.partner.x >= b.x ? 1 : -1;
+      b.front = true; setPose(b);
+      b.state = 'snug'; b.until = Math.max(b.snugEnd, t + 3000);
+    } else if (g.then === 'gather') {
+      b.dir = g.fx >= b.x ? 1 : -1;               // face the spot you tapped
+      b.front = Math.random() < 0.5; setPose(b);
+      b.partner = null; b.until = t + 2500 + Math.random() * 2500;
+    } else {
+      b.partner = null; b.until = t + 900 + Math.random() * 2000;
+    }
+  }
+  // come here: the few bunnies nearest a tap hop over and gather around that spot
+  function meadowCall(clientX, clientY) {
+    const m = meadow.el; if (!m || !meadow.bunnies.length) return false;
+    const r = m.getBoundingClientRect(), W = meadow.W || r.width, H = meadow.H || r.height, s = meadow.size || 60;
+    const lx = clientX - r.left, ly = clientY - r.top;
+    if (ly < 0 || ly > H || lx < 0 || lx > W) return false;
+    // invert the drawing: feet sit about 1.5 sizes below the node's top
+    const ty = clamp01((ly - s * 1.5) / Math.max(1, H - s * 1.55 - 16), 0, 1);
+    const w = s * (0.72 + ty * 0.28) * 0.66;
+    const tx = clamp01((lx - 6 - w / 2) / Math.max(1, W - w - 12));
+    const near = meadow.bunnies.slice().sort((a, c) => Math.hypot(a.x - tx, a.y - ty) - Math.hypot(c.x - tx, c.y - ty))
+      .slice(0, Math.min(4, Math.max(1, Math.ceil(meadow.bunnies.length / 3))));
+    // a loose ring around the spot, front row lower on screen, so they don't stack up
+    const span = meadowSpan(ty), spots = [[-0.6, 0.02], [0.6, 0.02], [0, -0.09], [0, 0.1]];
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    near.forEach((b, i) => {
+      if (b.partner) { const p = b.partner; p.partner = null; if (p.state === 'snug') { p.state = 'sit'; p.until = 0; } if (p.goal && p.goal.then === 'snug') p.goal = null; }
+      const [ox, oy] = spots[i];
+      b.goal = { x: clamp01(tx + ox * span * 1.1), y: clamp01(ty + oy, 0, 1), then: 'gather', fx: tx };
+      b.partner = null; b.cool = meadow.now + 8000;
+      if (still) { b.x = b.goal.x; b.y = b.goal.y; arrive(b, meadow.now); }
+      else if (b.state !== 'hop') { b.state = 'sit'; b.until = 0; }
+    });
+    // a quick ring where you tapped
+    const dot = el('div', 'meadow-ping'); dot.style.left = `${lx}px`; dot.style.top = `${ly}px`;
+    m.append(dot); setTimeout(() => dot.remove(), 700);
+    return true;
+  }
   function meadowTick(t) {
     const m = meadow.el;
     if (!m || view !== 'cal' || document.hidden) { meadow.raf = 0; return; }
@@ -1342,12 +1491,24 @@
     const W = m.clientWidth, H = hNow, still = matchMedia('(prefers-reduced-motion: reduce)').matches;
     // more bunnies, smaller bunnies
     const count = meadow.bunnies.length, size = Math.max(36, Math.min(72, 72 - (count - 6) * 0.9));
-    const newHop = (b, first) => ({ t0: t, x0: b.x, y0: b.y, crouch: first ? 0 : 90, air: 360 + Math.random() * 140,
-      dx: b.dir * (0.05 + Math.random() * 0.07), dy: (Math.random() - .5) * 0.14, h: 0.2 + Math.random() * 0.2 });
+    meadow.W = W; meadow.H = H; meadow.size = size; meadow.now = t;
+    const newHop = (b, first) => {
+      if (b.goal) {
+        // heading somewhere on purpose: hops of up to ~0.11 straight at the goal
+        const gx = b.goal.x - b.x, gy = b.goal.y - b.y, d = Math.hypot(gx, gy), k = Math.min(1, 0.11 / (d || 1));
+        if (Math.abs(gx) > 0.004) b.dir = gx > 0 ? 1 : -1;
+        return { t0: t, x0: b.x, y0: b.y, crouch: first ? 0 : 90, air: 340 + Math.random() * 80, dx: gx * k, dy: gy * k, h: 0.18 + Math.random() * 0.1 };
+      }
+      return { t0: t, x0: b.x, y0: b.y, crouch: first ? 0 : 90, air: 360 + Math.random() * 140,
+        dx: b.dir * (0.05 + Math.random() * 0.07), dy: (Math.random() - .5) * 0.14, h: 0.2 + Math.random() * 0.2 };
+    };
     for (const b of meadow.bunnies) {
-      if (!still && b.state === 'sit' && t > b.until) {
-        if (Math.random() < .25) b.dir = -b.dir;
-        b.hops = 1 + Math.floor(Math.random() * 4); b.front = false; setPose(b);
+      if (b.state === 'snug' && t > b.until) {   // the cuddle is over: drift apart on their own again
+        b.state = 'sit'; b.partner = null; b.until = t + 300 + Math.random() * 1500; b.cool = t + 15000;
+      }
+      if (!still && b.state === 'sit' && (t > b.until || b.goal)) {
+        if (!b.goal && Math.random() < .25) b.dir = -b.dir;
+        b.hops = b.goal ? Infinity : 1 + Math.floor(Math.random() * 4); b.front = false; setPose(b);
         b.state = 'hop'; b.hop = newHop(b, true);
       }
       let lift = 0, sx = 1, sy = 1, tilt = 0;
@@ -1368,10 +1529,13 @@
           if (b.x < 0.02 || b.x > 0.98) { b.dir = -b.dir; b.x = Math.min(0.98, Math.max(0.02, b.x)); }
           b.y = Math.min(1, Math.max(0, b.y));
           b.landT = t;
-          if (--b.hops > 0) b.hop = newHop(b, false);
-          else { b.state = 'sit'; b.until = t + 900 + Math.random() * 2600; if (Math.random() < .45) { b.front = true; setPose(b); } }
+          if (b.goal && Math.hypot(b.goal.x - b.x, b.goal.y - b.y) > 0.006) b.hop = newHop(b, false);
+          else if (b.goal) arrive(b, t);
+          else if (--b.hops > 0) b.hop = newHop(b, false);
+          else { b.state = 'sit'; b.until = t + 900 + Math.random() * 2600; if (Math.random() < .45) { b.front = true; setPose(b); } trySnuggle(b, t); }
         }
       }
+      if (b.state === 'snug') tilt = -b.dir * 0.09;   // leans in toward its partner
       if (b.landT != null && (b.state === 'sit' || t - b.hop.t0 < b.hop.crouch)) {
         // landing: eases into a squash, then a small springy wobble that settles
         const k = (t - b.landT) / 1000;
@@ -1576,7 +1740,11 @@
   $('btn-cal').addEventListener('click', () => openPanel('history'));
   $('btn-theme').addEventListener('click', () => openPanel('theme'));
   $('btn-sync').addEventListener('click', () => openPanel('sync'));
-  $('scrim').addEventListener('click', closeHistory);
+  // with bunnies on screen, a tap in the meadow calls them over; a tap anywhere else still closes the card
+  $('scrim').addEventListener('click', (e) => {
+    if (panel === 'history' && meadow.el && meadow.el.classList.contains('on') && meadowCall(e.clientX, e.clientY)) return;
+    closeHistory();
+  });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeHistory(); });
 
   // ---------- touch ----------
@@ -1586,7 +1754,8 @@
   // ---------- boot ----------
   applySkin(load(K.skin, 'obsidian'));
   // A session still saved at launch means the page was closed mid-session.
-  if (session) {
+  if (isSw(session)) finishStopwatch(Math.min(Date.now(), session.seen || session.start), 'left');
+  else if (session) {
     last = { minutes: session.minutes, category: session.category || category };
     if (Date.now() >= session.end) complete();
     else fail('You left the page, so the session stopped.');
@@ -1613,6 +1782,8 @@
   renderer.toneMappingExposure = 1.05;
   renderer.setClearColor(0x000000, 0);
   stage.appendChild(renderer.domElement);
+  // zzz: small z's that float up from the top of its head while it sleeps
+  const zzzLayer = document.createElement('div'); zzzLayer.className = 'zzz'; stage.appendChild(zzzLayer);
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
@@ -1728,15 +1899,15 @@
   headGroup.add(mesh(headG, glazeMat, 'head'));
 
   const innerMat = new THREE.MeshStandardMaterial({ color: PALETTES.brown.inner.clone(), roughness: 0.85, transparent: true, opacity: 0.85 });
-  const ears = earDefs.map(d => {
+  const ears = earDefs.map((d, i) => {
     const b = new THREE.Vector3(...d.base);
     const grp = new THREE.Group();
     grp.position.copy(b).sub(NECK);
     d.geo.translate(-b.x, -b.y, -b.z);
     d.inner.translate(-b.x, -b.y, -b.z);
-    grp.add(mesh(d.geo, glazeMat, 'head'), mesh(d.inner, innerMat, 'head'));
+    grp.add(mesh(d.geo, glazeMat, 'ear' + i), mesh(d.inner, innerMat, 'ear' + i));   // tagged per ear, so touching one grooms it
     headGroup.add(grp);
-    return { grp };
+    return { grp, side: Math.sign(b.x) || (i ? 1 : -1) };
   });
 
   // ---------- face ----------
@@ -1754,16 +1925,20 @@
   }
   const ballMat = new THREE.MeshStandardMaterial({ color: 0x221b18, roughness: 0.55, transparent: true, depthWrite: false });
   const arcMat = new THREE.MeshStandardMaterial({ color: 0x221b18, roughness: 0.55, transparent: true, depthWrite: false, opacity: 0 });
+  const sleepMat = arcMat.clone();
   const eyes = [-1, 1].map(s => {
     const pivot = new THREE.Group();
     const ball = new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 12), ballMat);
     ball.scale.set(1, 1.18, 0.55);
     const arc = new THREE.Mesh(new THREE.TorusGeometry(0.068, 0.017, 6, 16, Math.PI), arcMat);
     arc.position.y = -0.035; arc.scale.z = 0.6; arc.visible = false;
-    pivot.add(ball, arc);
+    // closed, sleeping eye: the same arc turned over into a soft ∪
+    const sleep = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.015, 6, 16, Math.PI), sleepMat);
+    sleep.rotation.z = Math.PI; sleep.position.y = 0.02; sleep.scale.set(1, 0.7, 0.6); sleep.visible = false;
+    pivot.add(ball, arc, sleep);
     placeOn(pivot, s * 0.29, 0.06 + (s > 0 ? 0.008 : 0), 0);
     pivot.rotateZ(s * 0.06);
-    return { ball, arc };
+    return { ball, arc, sleep };
   });
   const blushLight = PALETTES.brown.blush[0].clone(), blushDeep = PALETTES.brown.blush[1].clone();
   // blush: a soft stain painted onto the cheek. A small patch is shrink-wrapped onto the actual head surface
@@ -1876,13 +2051,39 @@
   let tapTimes = [], annoyStart = -10, annoyEnd = -10;
   let lookState = 'idle', behindSince = -1, lookStart = 0, lookSign = 1, lookBlinked = false, headYaw = 0;
 
+  // doze: a touch on the head sometimes sends it to sleep; it sleeps until you tap it again
+  let asleep = false, doze = 0, wakeAt = -10;
+  // petting long enough makes it drowsy: after PET_SLEEP seconds of stroking its head it smiles less, then nods off
+  const PET_SLEEP = 3;
+  let petT = 0, petMoveAt = -10;
+  // a touch on the head that doesn't send it to sleep gets a short smile instead (like a quick pet)
+  let smileUntil = -10;
+  // groom: touching an ear makes it fold that ear down to the side and flick it. The ears ride on damped springs,
+  // so the motion has weight: a little wind-up, an overshoot as it folds, flicks that rebound, a wobble as it lets go.
+  const GROOM = 1.7;
+  let groomAt = -10, groomEar = 0;
+  const earSpring = [0, 1].map(() => ({ x: 0, vx: 0, z: 0, vz: 0, kicks: [] }));
+  const groom = (now, i) => {
+    if (now - groomAt < GROOM * 0.8) return;
+    groomAt = now; groomEar = i; blink(now);
+    earSpring[i].kicks = [0.5, 0.74];          // seconds in: two flicks
+  };
+
   const shake = now => { if (now >= annoyEnd) { annoyStart = now; annoyEnd = now + 2.6; tapTimes = []; } };
-  function tap(now) {
+  function tap(now, part, dozing) {
     if (now < annoyEnd) return;
     if (busy) { shake(now); return; }          // while timing, any touch gets the head shake
+    if (dozing) { asleep = false; wakeAt = now; squish = 1; tapTimes = []; return; }   // startled awake
     tapTimes = tapTimes.filter(t => now - t < 1.5);
     tapTimes.push(now);
     if (tapTimes.length >= 5) { shake(now); return; }
+    const ear = /^ear(\d)$/.exec(part || '');
+    if (ear) { groom(now, +ear[1]); return; }
+    if (part === 'head' && mood === 'idle') {
+      squish = 1;
+      smileUntil = now + 1.6;                                            // a pat gets a quick smile
+      return;
+    }
     blink(now); squish = 1;
   }
 
@@ -1898,7 +2099,7 @@
   let gesture = null;
   renderer.domElement.addEventListener('pointerdown', e => {
     if (gesture) return;
-    gesture = { id: e.pointerId, part: pick(e), path: 0, x: e.clientX, y: e.clientY };
+    gesture = { id: e.pointerId, part: pick(e), path: 0, x: e.clientX, y: e.clientY, dozing: asleep };
     wake();
   });
   window.addEventListener('pointermove', e => {
@@ -1907,7 +2108,7 @@
     gesture.path += Math.hypot(dx, e.clientY - gesture.y);
     gesture.x = e.clientX; gesture.y = e.clientY;
     if (gesture.part === 'head' && gesture.path > 24) {
-      if (busy) shake(clock.elapsedTime); else petting = true;
+      if (busy) shake(clock.elapsedTime); else { petting = true; petMoveAt = clock.elapsedTime; }   // stroking a sleeping bunny keeps it asleep
     } else if (!gesture.part && !busy) {
       azim -= dx * 0.012;
     }
@@ -1915,8 +2116,8 @@
   });
   function endGesture(e) {
     if (!gesture || e.pointerId !== gesture.id) return;
-    if (gesture.path <= 8 && gesture.part && e.type === 'pointerup') tap(clock.elapsedTime);
-    petting = false; gesture = null;
+    if (gesture.path <= 8 && gesture.part && e.type === 'pointerup') tap(clock.elapsedTime, gesture.part, gesture.dozing);
+    petting = false; petT = 0; gesture = null;
   }
   window.addEventListener('pointerup', endGesture);
   window.addEventListener('pointercancel', endGesture);
@@ -1937,13 +2138,13 @@
   new ResizeObserver(resize).observe(stage);
 
   // ---------- loop: ~30fps, ~15fps when nothing is happening ----------
-  let last = 0, lastDraw = -1, raf = 0;
+  let last = 0, lastDraw = -1, raf = 0, springMoving = false;
   function wake() { if (!raf && active && !document.hidden) raf = requestAnimationFrame(frame); }
   function frame() {
     raf = 0;
     if (!active || document.hidden) return;
     const now = clock.getElapsedTime();
-    const calm = !gesture && now >= annoyEnd && now > hopAt + 1 && sad < 0.01 && Math.abs(glow - (mood === 'success' ? 1 : 0)) < 0.01 && happy < 0.01 && squish < 0.01 && blinkStart < 0 && Math.abs(azim - (busy || mood !== 'idle' ? 0 : azim)) < 0.01;
+    const calm = !gesture && now >= annoyEnd && now > hopAt + 1 && now > groomAt + GROOM && now > wakeAt + 1 && doze < 0.01 && now > smileUntil && !springMoving && sad < 0.01 && Math.abs(glow - (mood === 'success' ? 1 : 0)) < 0.01 && happy < 0.01 && squish < 0.01 && blinkStart < 0 && Math.abs(azim - (busy || mood !== 'idle' ? 0 : azim)) < 0.01;
     if (now - lastDraw < (calm ? 1 / 15 : 1 / 30)) { raf = requestAnimationFrame(frame); return; }
     lastDraw = now;
     const dt = Math.min(0.08, now - last); last = now;
@@ -1956,7 +2157,40 @@
     const annoyed = now < annoyEnd;
     const env = annoyed ? Math.min(1, (now - annoyStart) / 0.15) * Math.min(1, (annoyEnd - now) / 1.0) : 0;
     const at = now - annoyStart;
-    happy += ((petting ? 1 : 0) - happy) * Math.min(1, dt * (petting ? 6 : 1.4));
+    // count only time the finger is actually stroking; a pause of more than ~0.4 s doesn't add to it
+    if (petting && !busy && mood === 'idle' && now - petMoveAt < 0.4) petT += dt;
+    if (petting && !asleep && petT >= PET_SLEEP) asleep = true;
+    const smiling = (petting && !asleep) || now < smileUntil;
+    happy += ((smiling ? 1 : 0) - happy) * Math.min(1, dt * (smiling ? 6 : 1.4));
+    // doze: drifts off over a few seconds, wakes quickly
+    const sleepy = asleep && !busy && mood === 'idle';
+    doze += ((sleepy ? 1 : 0) - doze) * Math.min(1, dt * (sleepy ? 0.9 : 5));
+    if (doze < 0.001) doze = 0;
+    const wk = now - wakeAt, startle = wk >= 0 && wk < 0.9 ? Math.exp(-wk / 0.22) : 0;   // ears up, eyes wide
+
+    // groom: spring targets over time, the springs do the moving
+    const gt = now - groomAt, side = ears[groomEar].side;
+    const ssg = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+    const folding = gt >= 0.12 && gt < 1.05, winding = gt >= 0 && gt < 0.12;
+    earSpring.forEach((s, i) => {
+      let tx = 0, tz = 0;
+      if (i === groomEar) {
+        if (winding) tx = -0.16;                                  // a small lift back before it folds
+        else if (folding) { tx = 1.0; tz = -side * 0.22; }        // down and forward, a little out to its side
+        // flicks: sharp kicks the spring snaps back from
+        while (s.kicks.length && gt >= s.kicks[0]) { s.kicks.shift(); s.vz += side * 7.5; s.vx -= 3.2; }
+      } else if (gt >= 0.1 && gt < 1.1) tx = -0.1;               // the other ear swivels back a little
+      // damped spring (underdamped, so it overshoots and wobbles a touch before it settles)
+      const K = 150, C = 2 * 0.3 * Math.sqrt(K), n = Math.max(1, Math.ceil(dt * 240)), h = dt / n;
+      for (let k = 0; k < n; k++) {
+        s.vx += (K * (tx - s.x) - C * s.vx) * h; s.x += s.vx * h;
+        s.vz += (K * (tz - s.z) - C * s.vz) * h; s.z += s.vz * h;
+      }
+    });
+    // the head lowers a little and leans toward the ear while it's folded
+    const gLean = gt >= 0 ? ssg(0.05, 0.4, gt) * (1 - ssg(0.95, 1.4, gt)) : 0;
+    const gTilt = gLean * 0.12, gDip = gLean * 0.08;
+    springMoving = earSpring.some(s => Math.abs(s.x) + Math.abs(s.z) + Math.abs(s.vx) + Math.abs(s.vz) > 0.002);
     sad += ((mood === 'failed' ? 1 : 0) - sad) * Math.min(1, dt * 2.2);
     glow += ((mood === 'success' ? 1 : 0) - glow) * Math.min(1, dt * 2.5);
 
@@ -1990,33 +2224,40 @@
     headYaw += (yawTarget - headYaw) * Math.min(1, dt * 4.5);
 
     headGroup.rotation.set(
-      -happy * 0.1 + sad * 0.34,
+      -happy * 0.1 + sad * 0.34 + doze * (0.2 + Math.sin(now * 0.8) * 0.07) - startle * 0.08 + gDip,   // dozing: slow nods
       headYaw + Math.sin(at * 13) * 0.32 * env,
-      Math.sin(at * 9) * 0.14 * env + Math.sin(now * 2.6) * 0.07 * happy + (lookState === 'look' ? lookSign * 0.06 : 0));
+      Math.sin(at * 9) * 0.14 * env + Math.sin(now * 2.6) * 0.07 * happy + (lookState === 'look' ? lookSign * 0.06 : 0)
+        - side * gTilt);                                                                         // leans toward the ear it grooms
     bunny.rotation.z = Math.sin(at * 9 + 1) * 0.03 * env;
-    // ears: lean back when petted, flap when annoyed, flick on success, flop forward when sad
+    // ears: lean back when petted, flap when annoyed, flick on success, flop forward when sad,
+    // droop when dozing, shoot up when startled awake, and fold and flick when groomed (springs)
     ears.forEach((ear, i) => ear.grp.rotation.set(
-      -happy * 0.3 + sad * 1.15,
+      -happy * 0.3 + sad * 1.15 + doze * 0.4 - startle * 0.4 + earSpring[i].x,
       0,
-      Math.sin(at * 15 + i * 2) * 0.16 * env + Math.sin(fl * 30 + i * 1.3) * flick + sad * (i === 0 ? 0.12 : -0.12)));
+      Math.sin(at * 15 + i * 2) * 0.16 * env + Math.sin(fl * 30 + i * 1.3) * flick + sad * (i === 0 ? 0.12 : -0.12)
+        + earSpring[i].z));
 
     const joy = Math.max(happy, glow);
-    if (now >= nextBlink && joy < 0.3 && !annoyed) { blink(now); scheduleNext(now); }
+    if (now >= nextBlink && joy < 0.3 && !annoyed && doze < 0.1) { blink(now); scheduleNext(now); }
     let lid = 1;
     if (blinkStart >= 0) {
       const p = (now - blinkStart) / BLINK;
       if (p >= 1) blinkStart = -1; else lid = 1 - Math.sin(Math.PI * p) * 0.9;
     }
     const ss = (a, b, x) => { const t = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
-    const ballFade = 1 - ss(0.15, 0.65, joy), arcFade = ss(0.3, 0.8, joy);
-    const open = lid * (1 - 0.62 * env), shrink = 1 - 0.35 * joy;
-    ballMat.opacity = ballFade; arcMat.opacity = arcFade;
+    const shut = ss(0.25, 0.75, doze);                       // eyes close as it nods off
+    const ballFade = (1 - ss(0.15, 0.65, joy)) * (1 - shut), arcFade = ss(0.3, 0.8, joy);
+    const sleepFade = ss(0.35, 0.85, doze) * (1 - arcFade);
+    const drowsy = petting && !asleep ? ss(PET_SLEEP * 0.55, PET_SLEEP, petT) : 0;   // eyelids grow heavy just before it nods off
+    const open = lid * (1 - 0.62 * env) * (1 - 0.7 * doze) * (1 - 0.4 * drowsy) * (1 + 0.3 * startle), shrink = 1 - 0.35 * joy;
+    ballMat.opacity = ballFade; arcMat.opacity = arcFade; sleepMat.opacity = sleepFade;
     eyes.forEach(e => {
       e.ball.visible = ballFade > 0.01;
       e.ball.scale.set(shrink, 1.18 * Math.max(0.06, open) * shrink * (1 - 0.3 * sad), 0.55);
       e.arc.visible = arcFade > 0.01;
       const g = 0.75 + 0.25 * joy;
       e.arc.scale.set(g, g, 0.6);
+      e.sleep.visible = sleepFade > 0.01;
     });
     const flush = Math.max(happy, glow);
     blushMat.color.copy(blushLight).lerp(blushDeep, flush);
@@ -2035,13 +2276,40 @@
     });
 
     squish *= 0.85;
-    const breathe = reduceMotion ? 0 : Math.sin(now * 1.6) * 0.006;
+    const breathe = reduceMotion ? 0 : Math.sin(now * (1.6 - 0.6 * doze)) * (0.006 + 0.01 * doze);   // slower, deeper breaths asleep
     bunny.scale.set(1 + squish * 0.04, 1 + breathe - squish * 0.05 - sad * 0.03, 1 + squish * 0.04);
 
     renderer.render(scene, camera);
+    floatZ(now);
     raf = requestAnimationFrame(frame);
   }
-  document.addEventListener('visibilitychange', wake);
+  // each z rises up and to the right of the head, swaying, growing and fading; a new one about every second
+  const zs = [], zAnchor = new THREE.Vector3(), Z_LIFE = 2.8;
+  let nextZ = 0, zCount = 0;
+  function floatZ(now) {
+    if (doze > 0.75 && now >= nextZ) {
+      const el = document.createElement('span'); el.textContent = 'z';
+      zzzLayer.append(el);
+      zs.push({ el, t0: now, size: [0.075, 0.095, 0.12][zCount++ % 3], ph: Math.random() * 6 });
+      nextZ = now + 0.95;
+    }
+    if (!zs.length) return;
+    // the top of the head, a little to its right, on screen (after render, so it follows nods and turns)
+    zAnchor.set(0.62, 0.62, 0.1); headGroup.localToWorld(zAnchor); zAnchor.project(camera);   // upper side of the head, clear of the ear
+    const W = stage.clientWidth, H = stage.clientHeight, ax = (zAnchor.x + 1) / 2 * W, ay = (1 - zAnchor.y) / 2 * H;
+    const awake = Math.min(1, doze * 1.6);                   // waking fades them all out quickly
+    for (let i = zs.length - 1; i >= 0; i--) {
+      const z = zs[i], p = (now - z.t0) / Z_LIFE;
+      if (p >= 1 || awake < 0.02) { z.el.remove(); zs.splice(i, 1); continue; }
+      const x = ax + H * (0.05 + p * 0.2) + Math.sin(p * 5 + z.ph) * H * 0.014;
+      const y = ay - H * (0.03 + p * 0.32);
+      const op = Math.min(1, p / 0.15) * (1 - Math.max(0, (p - 0.55) / 0.45)) * awake;
+      z.el.style.fontSize = `${Math.round(H * z.size)}px`;
+      z.el.style.opacity = op.toFixed(3);
+      z.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%) rotate(-12deg) scale(${(0.6 + p * 0.55).toFixed(3)})`;
+    }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) asleep = false; wake(); });
 
   let palette = 'brown';
   function setPalette(name) {
@@ -2054,6 +2322,7 @@
   window.fgBunny = {
     set(o) {
       busy = !!o.busy; active = o.active !== false;
+      if (busy || !active || (o.mood || 'idle') !== 'idle') asleep = false;   // starting a session or leaving the screen wakes it
       glassGroup.visible = !!o.glasses;
       setPalette(o.glasses ? 'cream' : 'brown');
       stage.classList.toggle('busy', busy);
@@ -2064,6 +2333,8 @@
       wake();
     },
     celebrate() { hopAt = clock.getElapsedTime() + 0.8; landed = false; wake(); },
+    nap() { if (!busy && mood === 'idle') { asleep = true; wake(); } },
+    get state() { return { doze, asleep, smiling: clock.getElapsedTime() < smileUntil, happy, groomAt, groomEar, wakeAt, now: clock.getElapsedTime() }; },
   };
   if (window.fgBunnyCelebrate) { window.fgBunnyCelebrate = false; window.fgBunny.celebrate(); }
   if (window.fgBunnyState) window.fgBunny.set(window.fgBunnyState);
@@ -2073,3 +2344,5 @@
 </script>
 </body>
 </html>
+
+</body></html>
