@@ -496,7 +496,7 @@
   @media (prefers-reduced-motion: reduce) { .mark.play, .mark.play .ring, .mark.play .check { animation: none; } }
 </style>
 
-</head>
+<script>if("serviceWorker" in navigator)addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});</script></head>
 <body>
 
 <canvas class="rain" id="rain" aria-hidden="true"></canvas>
