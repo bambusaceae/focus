@@ -75,6 +75,18 @@
   :root[data-skin="tea"] { --clock: #4a4636; --bg: #e8e0c8; --card: #f6f1e1; --chip: #e3dbc2; --fg: #3c392b; --muted: #8b846b; --line: #d6ccb0; --accent: #6d8740; --on-accent: #ffffff; --prosing: #6d8740; --working: #8e4c4a; --cell0: #ddd4b9; color-scheme: light; }
   [data-skin="tea"] body { background-image: repeating-linear-gradient(0deg, rgba(120,104,60,.05) 0 1px, transparent 1px 5px); }
   [data-skin="tea"] .card { border: 1px solid #ddd3b6; }
+  /* Wool: a warm oatmeal blanket — woven texture, serif type, a stitched ring, wine-red accent */
+  :root[data-skin="wool"] { --clock: #5a3f35; --bg: #f3ece0; --card: #e9dfce; --chip: #dccfb9; --fg: #4a3b32; --muted: #8c7b6b; --line: #d6c8af; --accent: #9c4a3c; --on-accent: #ffffff; --prosing: #9c4a3c; --working: #4f6b66; --cell0: #e2d6c1; --font-ui: ui-serif, "New York", "Iowan Old Style", Georgia, serif; --font-clock: ui-serif, "New York", "Iowan Old Style", Georgia, serif; color-scheme: light; }
+  [data-skin="wool"] body { background-image: repeating-linear-gradient(0deg, rgba(110,80,50,.045) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(110,80,50,.045) 0 1px, transparent 1px 3px); }
+  [data-skin="wool"] body, [data-skin="wool"] .clock { font-variant-numeric: lining-nums tabular-nums; }
+  [data-skin="wool"] .clock { font-weight: 400; letter-spacing: 0; }
+  [data-skin="wool"] .date { font-weight: 500; opacity: .9; }
+  [data-skin="wool"] .card { border: 1px solid #d8cab2; border-radius: 12px; }
+  [data-skin="wool"] .act, [data-skin="wool"] .seg, [data-skin="wool"] .tag, [data-skin="wool"] .picker .band, [data-skin="wool"] .field { border-radius: 9px; }
+  [data-skin="wool"] .seg .thumb, [data-skin="wool"] .seg button { border-radius: 7px; }
+  [data-skin="wool"] .mark .track { stroke-dasharray: 1.2 2.2; stroke: #bfae92; stroke-width: 1.6; }
+  [data-skin="wool"] .mark .ring { stroke-width: 2.4; }
+  [data-skin="wool"] .cell { border-radius: 2px; }
   /* Sakura: pale blossom pink, petals drifting down */
   :root[data-skin="sakura"] { --clock: #5a3f47; --bg: #fbf0f1; --card: #fffafa; --chip: #f4e4e7; --fg: #4a383d; --muted: #a58c93; --line: #f0dadf; --accent: #d9788f; --on-accent: #ffffff; --prosing: #df7893; --working: #7aa267; --cell0: #f2e3e6; color-scheme: light; }
   [data-skin="sakura"] .card { border: 1px solid #f3dfe3; }
@@ -430,6 +442,7 @@
   /* theme swatches hint at their look */
   .skin .sw.t-snow { background-image: radial-gradient(circle, rgba(255,255,255,.85) 1.2px, transparent 1.7px), radial-gradient(circle, rgba(255,255,255,.55) .9px, transparent 1.4px) !important; background-size: 11px 11px, 15px 15px !important; background-position: 1px 2px, 7px 8px !important; }
   .skin .sw.t-starfield { background-image: radial-gradient(circle, rgba(255,255,255,.95) .8px, transparent 1.4px), radial-gradient(circle, rgba(200,215,255,.6) .6px, transparent 1.2px) !important; background-size: 13px 11px, 9px 14px !important; background-position: 3px 4px, 7px 1px !important; }
+  .skin .sw.t-wool { background-image: repeating-linear-gradient(0deg, rgba(110,80,50,.2) 0 1px, transparent 1px 4px), repeating-linear-gradient(90deg, rgba(110,80,50,.2) 0 1px, transparent 1px 4px) !important; }
   .skin[aria-pressed="true"] { color: var(--fg); }
   .skin[aria-pressed="true"] .sw { box-shadow: inset 0 0 0 1px rgba(0,0,0,.08), 0 0 0 2px var(--card), 0 0 0 3.5px var(--fg); }
   .skin:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
@@ -514,6 +527,7 @@
     ['starfield', 'Starfield', '#0d1226', '#9fb4ee', '#141b34'],
     ['tea',       'Tea Room',  '#e8e0c8', '#6d8740', '#f6f1e1'],
     ['sakura',    'Sakura',    '#fbf0f1', '#d9788f', '#fffafa'],
+    ['wool',      'Wool',      '#f3ece0', '#9c4a3c', '#e9dfce'],
   ];
 
   // ---------- snow (Snow skin only), drawn on the same canvas ----------
@@ -1643,7 +1657,7 @@
     card.append(el('div', 'rule'), resetHead, row);
   }
   let resetArmed = 0;
-  const THEMES = ['snow', 'starfield', 'tea', 'sakura'];   // skins that change more than colour
+  const THEMES = ['snow', 'starfield', 'tea', 'sakura', 'wool'];   // skins that change more than colour
   function renderTheme() {
     const card = $('card');
     let cur = load(K.skin, 'obsidian'); if (!SKINS.some((x) => x[0] === cur)) cur = 'obsidian';
